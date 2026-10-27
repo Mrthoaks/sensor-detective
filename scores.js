@@ -4,7 +4,7 @@
 
    SETUP: paste your Google Apps Script web app URL between the quotes below (see leaderboard-apps-script.gs).
    Leave it empty and the games still work, they just don't send scores. */
-const SCORE_URL = "";
+const SCORE_URL = "https://script.google.com/macros/s/AKfycbz28OKEh0aP0LThy5-YARHCKr5P1qOhZSeJcsLRBPLIZkt3qKIBeBknu0QgRe8SY2NY/exec";
 
 (function () {
   const NAME_KEY = "sd-player", ID_KEY = "sd-player-id", QUEUE_KEY = "sd-outbox";
