@@ -1,0 +1,364 @@
+<!-- WORD PUZZLES: Imagery Types vocabulary (VNIR, SWIR, TIR, Hyperspectral, Microwave, LiDAR).
+     Two games: Clue Word Search (read the clue, find the hidden term) and Unscramble Sprint (timed anagrams).
+     Paste into the CodePen HTML pane (style + script included) or open directly in a browser.
+     Same palette and fonts as the other pens. The grid is generated from a fixed seed, so every student gets the same puzzle. -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sensor Word Puzzles</title>
+<style>
+* { box-sizing: border-box; }
+body { margin: 0; font-family: Arial, Helvetica, sans-serif; background: #f4f7fb; color: #172033; }
+.app { max-width: 1100px; margin: auto; padding: 40px 25px 60px; }
+header { text-align: center; margin-bottom: 22px; }
+.eyebrow { font-size: 13px; font-weight: 700; letter-spacing: 2px; color: #5268a5; margin-bottom: 10px; }
+h1 { font-size: 40px; margin: 0 0 10px; }
+.subtitle { max-width: 680px; margin: auto; line-height: 1.6; color: #5d6678; font-size: 17px; }
+
+.modes { display: flex; gap: 8px; justify-content: center; margin: 22px 0 18px; flex-wrap: wrap; }
+.mode { border: 2px solid #dfe4ed; border-radius: 12px; padding: 12px 22px; background: white; font: bold 15px Arial; color: #5d6678; cursor: pointer; }
+.mode[aria-pressed="true"] { background: #6577b8; border-color: #6577b8; color: white; }
+button:focus-visible { outline: 3px solid #172033; outline-offset: 2px; }
+
+.stats { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-bottom: 18px; }
+.stat { background: white; border-radius: 30px; padding: 8px 16px; font: bold 14px Arial; box-shadow: 0 4px 14px rgba(0,0,0,.05); }
+.stat b { color: #6577b8; }
+
+.panel { background: white; border-radius: 20px; padding: 22px; box-shadow: 0 6px 20px rgba(0,0,0,.06); }
+.panel h2 { margin: 0 0 4px; font-size: 18px; }
+.panel .sub { margin: 0 0 14px; color: #7a8393; font-size: 13px; line-height: 1.5; }
+.layout { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+
+/* ---------- word search ---------- */
+.grid { display: grid; grid-template-columns: repeat(15, 1fr); gap: 3px; user-select: none; -webkit-user-select: none; touch-action: none; }
+.cell { aspect-ratio: 1; display: grid; place-items: center; border-radius: 6px; background: #f4f7fb; font: bold clamp(11px, 2.1vw, 18px) Arial; color: #172033; cursor: pointer; transition: background .15s ease; }
+.cell.sel { background: #6577b8; color: white; }
+.cell.anchor { box-shadow: inset 0 0 0 2px #6577b8; }
+.cell.found { color: white; }
+.cell.reveal { box-shadow: inset 0 0 0 2px #d9695a; }
+.clues { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.clues li { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border-radius: 12px; background: #f8f9fc; font-size: 14px; line-height: 1.45; }
+.clues li .n { flex: none; width: 24px; height: 24px; border-radius: 50%; background: white; border: 2px solid #dfe4ed; display: grid; place-items: center; font: bold 12px Arial; color: #8992a5; }
+.clues li .blank { display: block; margin-top: 4px; font: bold 13px "Courier New", monospace; letter-spacing: 2px; color: #8992a5; }
+.clues li.got { background: #edf8f1; }
+.clues li.got .n { background: #4caf75; border-color: #4caf75; color: white; }
+.clues li.got .blank { color: #398257; letter-spacing: 1px; }
+.clues li button { margin-left: auto; flex: none; border: 1px solid #dfe4ed; background: white; border-radius: 8px; padding: 4px 8px; font: 12px Arial; color: #5268a5; cursor: pointer; }
+.live { min-height: 22px; margin: 12px 0 0; text-align: center; font-weight: bold; color: #398257; }
+.live.warn { color: #b0563f; }
+
+/* ---------- unscramble ---------- */
+.us { max-width: 760px; margin: auto; text-align: center; }
+.clue-big { font-size: 20px; line-height: 1.5; margin: 6px 0 22px; }
+.tiles, .answer { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; min-height: 58px; }
+.answer { margin-bottom: 18px; padding: 10px; border: 2px dashed #c3cadb; border-radius: 16px; }
+.tile { width: clamp(28px, 7.4vw, 48px); height: clamp(38px, 9vw, 52px); border-radius: 12px; border: 0; background: #6577b8; color: white; font: bold 22px Arial; cursor: pointer; box-shadow: 0 4px 0 #4a5a96; transition: transform .1s ease; }
+.tile:active { transform: translateY(3px); box-shadow: 0 1px 0 #4a5a96; }
+.tile.used { visibility: hidden; }
+.answer .tile { background: #172033; box-shadow: 0 4px 0 #000; }
+.answer.right { border-color: #4caf75; background: #edf8f1; }
+.answer.wrong { border-color: #d9695a; animation: shake .35s; }
+@keyframes shake { 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
+.timer { height: 10px; background: #dfe4ed; border-radius: 20px; overflow: hidden; margin: 0 0 18px; }
+.timer div { height: 100%; background: #6577b8; transition: width 1s linear; }
+.timer.low div { background: #d9695a; }
+
+.bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 10px; margin-top: 18px; }
+.btn { border: 0; border-radius: 12px; padding: 13px 22px; background: #6577b8; color: white; font-size: 15px; font-weight: bold; cursor: pointer; }
+.btn:hover { opacity: .9; }
+.btn:disabled { background: #c3cadb; cursor: not-allowed; opacity: 1; }
+.btn.ghost { background: white; color: #5268a5; border: 2px solid #dfe4ed; }
+.done { text-align: center; padding: 10px 0; }
+.done .big { font-size: 56px; }
+.done h2 { font-size: 28px; margin: 6px 0; }
+.done p { color: #667085; line-height: 1.6; }
+.rev { list-style: none; padding: 0; max-width: 560px; margin: 14px auto 0; text-align: left; }
+.rev li { padding: 8px 0; border-bottom: 1px solid #eef1f6; font-size: 14px; line-height: 1.45; }
+.teacher { margin-top: 26px; text-align: center; font-size: 13px; color: #7a8393; }
+.teacher button { background: none; border: 0; color: #5268a5; text-decoration: underline; cursor: pointer; font: inherit; }
+
+@media (max-width: 860px) { .layout { grid-template-columns: 1fr; } h1 { font-size: 30px; } }
+@media (max-width: 560px) { .app { padding: 28px 16px 50px; } .panel { padding: 16px; } .grid { gap: 2px; } .tiles, .answer { gap: 5px; } .tile { font-size: 18px; } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+
+<div class="app">
+  <header>
+    <div class="eyebrow">REMOTE SENSING • WORD PUZZLES</div>
+    <h1>🧩 Sensor Word Lab</h1>
+    <p class="subtitle">Lock in the vocabulary of imagery types. Read each clue, then hunt for the word or race the clock to unscramble it.</p>
+  </header>
+  <div class="modes">
+    <button class="mode" id="m-ws" aria-pressed="true" onclick="setMode('ws')">🔍 Clue Word Search</button>
+    <button class="mode" id="m-us" aria-pressed="false" onclick="setMode('us')">⚡ Unscramble Sprint</button>
+  </div>
+  <div id="view"></div>
+  <p class="teacher">Teacher tools: <button onclick="revealAll()">show answers</button> · <button onclick="restart()">restart this puzzle</button></p>
+</div>
+
+<script>
+/* ---------- content ---------- */
+const WS_WORDS = [
+  ["HYPERSPECTRAL", "Hundreds of narrow, continuous bands give every pixel a spectral fingerprint."],
+  ["BACKSCATTER", "The part of a radar pulse that bounces back to the sensor."],
+  ["WAVELENGTH", "Distance between wave peaks. For these sensors it is measured in µm, mm or m."],
+  ["MICROWAVE", "The longest wavelengths here (1 mm to 1 m). They pass through clouds."],
+  ["SENTINEL", "Copernicus satellite family. Number 1 carries radar, number 2 carries VNIR and SWIR."],
+  ["THERMAL", "Infrared that measures heat emitted by the surface, about 8–14 µm."],
+  ["PASSIVE", "A sensor that records energy already there, like sunlight or heat."],
+  ["SPECKLE", "Grainy, salt-and-pepper noise you see in SAR images."],
+  ["ACTIVE", "A sensor that sends out its own energy, like radar or LiDAR."],
+  ["LIDAR", "Times laser pulses to measure the height of trees and buildings."],
+  ["RADAR", "Sends microwave pulses and records the echo. SAR is a type of this."],
+  ["VNIR", "Visible plus near-infrared. It makes healthy forests glow bright."],
+  ["SWIR", "Shortwave infrared, 1.0–2.5 µm. Water absorbs strongly here."],
+  ["NDVI", "Vegetation index that compares red and near-infrared reflectance."]
+];
+const US_WORDS = [
+  ["INFRARED", "Energy just beyond red that our eyes cannot see."],
+  ["PULSE", "LiDAR fires a laser ___ and times how long it takes to return."],
+  ["EMITTED", "TIR measures heat that surfaces have ___, not sunlight they reflect."],
+  ["FLOOD", "After a storm, smooth dark patches in a SAR image usually mean this."],
+  ["CANOPY", "The treetop layer of a forest. LiDAR measures its height."],
+  ["SPECTRUM", "The full range of electromagnetic energy, from visible to microwave."],
+  ["ISLAND", "Cities hotter than the countryside around them: an urban heat ___."],
+  ["REFLECTED", "VNIR and SWIR record sunlight that is ___ off the surface."],
+  ["ELEVATION", "LiDAR is the go-to tool for mapping this: the height of the ground."],
+  ["RESOLUTION", "Pixel size. Thermal bands are usually coarse in this (about 100 m on Landsat)."],
+  ["ABSORPTION", "A dip in a spectral curve is called an ___ feature."],
+  ["FINGERPRINT", "A hyperspectral curve acts like a material's spectral ___."]
+];
+const COLORS = ["#6577b8", "#4caf75", "#e07a5f", "#3d9bd1", "#c4932f", "#9b6fc7", "#2a9d8f", "#d9695a", "#5268a5", "#7aa95c", "#cf6f9c", "#4a90a4", "#b5838d", "#6d8f3a"];
+const N = 15, SEED = 20261026, US_TIME = 150;
+
+/* ---------- seeded random (same puzzle for every student) ---------- */
+function rng(seed) { return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const DIRS = [[0, 1], [1, 0], [1, 1], [-1, 1], [0, 1], [1, 0], [1, 1], [0, -1]];
+function buildGrid(seed) {
+  const r = rng(seed), g = Array.from({ length: N }, () => Array(N).fill("")), place = {};
+  for (const [w] of WS_WORDS) {
+    let ok = false;
+    for (let tries = 0; tries < 2000 && !ok; tries++) {
+      const [dr, dc] = DIRS[Math.floor(r() * DIRS.length)];
+      const r0 = Math.floor(r() * N), c0 = Math.floor(r() * N);
+      const cells = [...w].map((_, i) => [r0 + dr * i, c0 + dc * i]);
+      if (cells.every(([y, x], i) => y >= 0 && y < N && x >= 0 && x < N && (g[y][x] === "" || g[y][x] === w[i]))) {
+        cells.forEach(([y, x], i) => g[y][x] = w[i]); place[w] = cells; ok = true;
+      }
+    }
+    if (!ok) return buildGrid(seed + 1);
+  }
+  const AB = "ABCDEFGHIKLMNOPRSTUVWY";
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) if (!g[y][x]) g[y][x] = AB[Math.floor(r() * AB.length)];
+  return { g, place };
+}
+const PUZ = buildGrid(SEED);
+function scramble(w, i) {
+  const r = rng(SEED + i * 97); let a = [...w];
+  for (let k = 0; k < 20; k++) { for (let j = a.length - 1; j > 0; j--) { const m = Math.floor(r() * (j + 1)); [a[j], a[m]] = [a[m], a[j]]; } if (a.join("") !== w) break; }
+  return a;
+}
+
+/* ---------- state ---------- */
+let mode = "ws";
+const ws = { found: {}, score: 0, hints: {}, start: null, end: null, anchor: null, drag: null, sel: [], revealed: false };
+const us = { i: 0, picked: [], score: 0, results: [], left: US_TIME, timer: null, started: false, hint: false };
+const $ = id => document.getElementById(id);
+
+function setMode(m) {
+  mode = m; $("m-ws").setAttribute("aria-pressed", m === "ws"); $("m-us").setAttribute("aria-pressed", m === "us");
+  clearInterval(us.timer); us.timer = null;
+  m === "ws" ? renderWS() : renderUS();
+  if (m === "us" && us.started && us.i < US_WORDS.length && us.left > 0) startTimer();
+}
+
+/* =====================================================================
+   CLUE WORD SEARCH
+   ===================================================================== */
+const wsDone = () => Object.keys(ws.found).length === WS_WORDS.length;
+function fmt(s) { return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); }
+function renderWS() {
+  const owner = {};
+  WS_WORDS.forEach(([w], k) => { if (ws.found[w] || ws.revealed) PUZ.place[w].forEach(([y, x]) => owner[y + "," + x] = k); });
+  const n = Object.keys(ws.found).length;
+  $("view").innerHTML = `
+    <div class="stats"><span class="stat">Found <b>${n}/${WS_WORDS.length}</b></span><span class="stat">Score <b id="wsscore">${ws.score}</b></span><span class="stat">⏱ <b id="wstime">${ws.start ? fmt(Math.round(((ws.end || Date.now()) - ws.start) / 1000)) : "0:00"}</b></span></div>
+    <div class="layout">
+      <section class="panel">
+        <h2>The grid</h2>
+        <p class="sub">Drag across a word, or tap its first letter and then its last. Words run across, down, or diagonally.</p>
+        <div class="grid" id="grid" role="grid" aria-label="Word search grid">${PUZ.g.map((row, y) => row.map((ch, x) => {
+          const k = owner[y + "," + x];
+          const style = k !== undefined ? ` style="background:${COLORS[k % COLORS.length]}"` : "";
+          const cls = "cell" + (k !== undefined ? (ws.found[WS_WORDS[k][0]] ? " found" : " found reveal") : "");
+          return `<div class="${cls}" data-y="${y}" data-x="${x}"${style}>${ch}</div>`; }).join("")).join("")}</div>
+        <p class="live" id="wslive" aria-live="polite"></p>
+      </section>
+      <section class="panel">
+        <h2>Clues</h2>
+        <p class="sub">Each clue hides one word in the grid. Found words fill in automatically. A hint shows the first letter and costs 20 points.</p>
+        <ol class="clues">${WS_WORDS.map(([w, c], k) => {
+          const got = ws.found[w], show = got || ws.revealed;
+          const blank = show ? w : [...w].map((ch, i) => i === 0 && ws.hints[w] ? ch : "_").join(" ");
+          return `<li class="${got ? "got" : ""}"><span class="n">${k + 1}</span><span>${c}<span class="blank">${blank} (${w.length})</span></span>${show || ws.hints[w] ? "" : `<button onclick="wsHint('${w}')">Hint</button>`}</li>`; }).join("")}</ol>
+      </section>
+    </div>
+    ${wsDone() ? `<section class="panel done" style="margin-top:20px"><div class="big">🏆</div><h2>All ${WS_WORDS.length} words found!</h2>
+      <p>Score <strong>${ws.score}</strong> in <strong>${fmt(Math.round((ws.end - ws.start) / 1000))}</strong>. Now try the Unscramble Sprint.</p>
+      <div class="bar"><button class="btn" onclick="setMode('us')">⚡ Unscramble Sprint →</button></div></section>` : ""}`;
+  bindGrid();
+}
+function cellAt(e) {
+  const el = document.elementFromPoint(e.clientX, e.clientY);
+  return el && el.classList.contains("cell") ? [Number(el.dataset.y), Number(el.dataset.x)] : null;
+}
+function line(a, b) {
+  const dy = b[0] - a[0], dx = b[1] - a[1];
+  if (!(dy === 0 || dx === 0 || Math.abs(dy) === Math.abs(dx))) return null;
+  const len = Math.max(Math.abs(dy), Math.abs(dx)), sy = Math.sign(dy), sx = Math.sign(dx);
+  return Array.from({ length: len + 1 }, (_, i) => [a[0] + sy * i, a[1] + sx * i]);
+}
+function paintSel(cells) {
+  document.querySelectorAll(".cell.sel").forEach(c => c.classList.remove("sel"));
+  (cells || []).forEach(([y, x]) => { const c = document.querySelector(`.cell[data-y="${y}"][data-x="${x}"]`); if (c) c.classList.add("sel"); });
+}
+function bindGrid() {
+  const grid = $("grid"); if (!grid) return;
+  let moved = false;
+  grid.onpointerdown = e => {
+    const c = cellAt(e); if (!c || wsDone()) return;
+    e.preventDefault();
+    if (!ws.start) { ws.start = Date.now(); tickWS(); }
+    if (ws.anchor) { const cells = line(ws.anchor, c); ws.anchor = null; document.querySelectorAll(".anchor").forEach(a => a.classList.remove("anchor")); if (cells && cells.length > 1) { tryWord(cells); return; } }
+    ws.drag = c; moved = false; paintSel([c]);
+  };
+  grid.onpointermove = e => {
+    if (!ws.drag) return;
+    const c = cellAt(e); if (!c) return;
+    if (c[0] !== ws.drag[0] || c[1] !== ws.drag[1]) moved = true;
+    const cells = line(ws.drag, c); if (cells) { ws.sel = cells; paintSel(cells); }
+  };
+  window.onpointerup = () => {
+    if (!ws.drag) return;
+    const start = ws.drag; ws.drag = null;
+    if (!moved) {
+      ws.anchor = start; paintSel([]);
+      const el = document.querySelector(`.cell[data-y="${start[0]}"][data-x="${start[1]}"]`); if (el) el.classList.add("anchor");
+      return;
+    }
+    tryWord(ws.sel); ws.sel = [];
+  };
+}
+function tryWord(cells) {
+  const word = cells.map(([y, x]) => PUZ.g[y][x]).join(""), rev = [...word].reverse().join("");
+  const hit = WS_WORDS.find(([w]) => !ws.found[w] && (w === word || w === rev) && sameCells(PUZ.place[w], cells));
+  paintSel([]);
+  const live = $("wslive");
+  if (hit) {
+    const w = hit[0]; ws.found[w] = true; ws.score += 100;
+    if (wsDone()) { ws.end = Date.now(); if (window.Scores) Scores.submit("wordsearch", ws.score, `${WS_WORDS.length} words in ${fmt(Math.round((ws.end - ws.start) / 1000))}`); }
+    renderWS(); $("wslive").textContent = `✅ ${w}! +100`;
+  } else if (live) { live.className = "live warn"; live.textContent = cells.length > 1 ? "Not one of the clue words. Keep looking!" : ""; }
+}
+function sameCells(a, b) {
+  const key = c => c.map(p => p.join(",")).join("|");
+  return key(a) === key(b) || key(a) === key([...b].reverse());
+}
+function wsHint(w) { ws.hints[w] = true; ws.score = Math.max(0, ws.score - 20); renderWS(); }
+function tickWS() {
+  clearInterval(ws.tick);
+  ws.tick = setInterval(() => { const t = $("wstime"); if (!ws.start || ws.end) return clearInterval(ws.tick); if (t) t.textContent = fmt(Math.round((Date.now() - ws.start) / 1000)); }, 1000);
+}
+
+/* =====================================================================
+   UNSCRAMBLE SPRINT
+   ===================================================================== */
+function renderUS() {
+  if (!us.started) {
+    $("view").innerHTML = `<section class="panel us">
+      <div class="done"><div class="big">⚡</div><h2>Unscramble Sprint</h2>
+      <p>${US_WORDS.length} scrambled words, ${fmt(US_TIME)} on the clock. Read the clue, tap the letters in order. Each word is worth 100 points plus a speed bonus. A hint costs 30 points. Stuck? Skip and come back.</p>
+      <div class="bar"><button class="btn" onclick="startUS()">Start the sprint</button></div></div></section>`;
+    return;
+  }
+  if (us.i >= US_WORDS.length || us.left <= 0) return finishUS();
+  const [w, clue] = US_WORDS[us.i], letters = scramble(w, us.i);
+  const ans = us.picked.map(j => letters[j]);
+  $("view").innerHTML = `
+    <div class="stats"><span class="stat">Word <b>${us.i + 1}/${US_WORDS.length}</b></span><span class="stat">Score <b>${us.score}</b></span><span class="stat">⏱ <b id="ustime">${fmt(us.left)}</b></span></div>
+    <section class="panel us">
+      <div class="timer${us.left <= 20 ? " low" : ""}" id="usbar"><div style="width:${us.left / US_TIME * 100}%"></div></div>
+      <p class="clue-big">${clue}</p>
+      <div class="answer" id="answer" aria-live="polite">${ans.map((ch, k) => `<button class="tile" aria-label="Remove ${ch}" onclick="usUndo(${k})">${ch}</button>`).join("")}</div>
+      <div class="tiles">${letters.map((ch, j) => `<button class="tile${us.picked.includes(j) ? " used" : ""}" onclick="usPick(${j})">${ch}</button>`).join("")}</div>
+      <p class="live" id="uslive">${us.hint ? `Hint: it starts with <strong>${w[0]}</strong> and ends with <strong>${w[w.length - 1]}</strong>.` : `${w.length} letters`}</p>
+      <div class="bar">
+        <button class="btn ghost" onclick="us.picked=[];renderUS()">Clear</button>
+        <button class="btn ghost" ${us.hint ? "disabled" : ""} onclick="usHint()">Hint (−30)</button>
+        <button class="btn ghost" onclick="usSkip()">Skip →</button>
+      </div>
+    </section>`;
+}
+function startUS() { us.started = true; us.wordStart = Date.now(); renderUS(); startTimer(); }
+function startTimer() {
+  clearInterval(us.timer);
+  us.timer = setInterval(() => {
+    us.left--;
+    const t = $("ustime"), b = $("usbar");
+    if (t) t.textContent = fmt(Math.max(us.left, 0));
+    if (b) { b.firstElementChild.style.width = Math.max(us.left, 0) / US_TIME * 100 + "%"; b.classList.toggle("low", us.left <= 20); }
+    if (us.left <= 0) { clearInterval(us.timer); finishUS(); }
+  }, 1000);
+}
+function usPick(j) {
+  if (us.picked.includes(j)) return;
+  us.picked.push(j);
+  const [w] = US_WORDS[us.i], letters = scramble(w, us.i);
+  if (us.picked.length === w.length) {
+    const guess = us.picked.map(k => letters[k]).join("");
+    if (guess === w) {
+      const secs = (Date.now() - us.wordStart) / 1000, bonus = Math.max(0, Math.round(50 - secs * 2));
+      us.score += 100 + bonus - (us.hint ? 30 : 0);
+      us.results[us.i] = "✅";
+      renderUS(); $("answer").classList.add("right"); $("uslive").textContent = `✅ ${w}! +${100 + bonus - (us.hint ? 30 : 0)}`;
+      setTimeout(nextUS, 700);
+      return;
+    }
+    renderUS(); const a = $("answer"); a.classList.add("wrong"); $("uslive").textContent = "Not quite. Tap a letter to remove it, or Clear.";
+    return;
+  }
+  renderUS();
+}
+function usUndo(k) { us.picked.splice(k, 1); renderUS(); }
+function usHint() { us.hint = true; renderUS(); }
+function usSkip() { if (!us.results[us.i]) us.results[us.i] = "⏭️"; nextUS(); }
+function nextUS() {
+  us.picked = []; us.hint = false;
+  let n = us.i + 1;
+  if (n >= US_WORDS.length) n = US_WORDS.findIndex((_, k) => us.results[k] !== "✅");
+  if (n === -1 || n === us.i && us.results[us.i] === "✅") { us.i = US_WORDS.length; return finishUS(); }
+  us.i = n; us.wordStart = Date.now(); renderUS();
+}
+function finishUS() {
+  clearInterval(us.timer);
+  const got = us.results.filter(r => r === "✅").length;
+  if (!us.sent && !us.teacher && window.Scores) { us.sent = true; Scores.submit("unscramble", us.score, `${got}/${US_WORDS.length} words`); }
+  const msg = got === US_WORDS.length ? "Clean sweep! Vocabulary locked in." : got >= 8 ? "Great sprint, just a few to review." : "Good start. Read the words below and try again.";
+  $("view").innerHTML = `<section class="panel us"><div class="done"><div class="big">${got === US_WORDS.length ? "🏆" : "⏱️"}</div>
+    <h2>${got}/${US_WORDS.length} unscrambled</h2><p>${msg} Score: <strong>${us.score}</strong>.</p>
+    <ul class="rev">${US_WORDS.map(([w, c], k) => `<li>${us.results[k] === "✅" ? "✅" : "❌"} <strong>${w}</strong>: ${c}</li>`).join("")}</ul>
+    <div class="bar"><button class="btn" onclick="restartUS()">Play again</button><button class="btn ghost" onclick="setMode('ws')">🔍 Word Search</button></div></div></section>`;
+}
+function restartUS() { clearInterval(us.timer); Object.assign(us, { i: 0, picked: [], score: 0, results: [], left: US_TIME, timer: null, started: false, hint: false, sent: false, teacher: false }); renderUS(); }
+
+/* ---------- teacher tools ---------- */
+function revealAll() {
+  if (mode === "ws") { ws.revealed = true; renderWS(); }
+  else { clearInterval(us.timer); us.started = true; us.left = 0; us.teacher = true; finishUS(); }
+}
+function restart() {
+  if (mode === "ws") { Object.assign(ws, { found: {}, score: 0, hints: {}, start: null, end: null, anchor: null, drag: null, sel: [], revealed: false }); renderWS(); }
+  else restartUS();
+}
+renderWS();
+</script>
+<script src="scores.js"></script>

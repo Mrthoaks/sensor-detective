@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Class Leaderboard</title>
+<style>
+* { box-sizing: border-box; }
+body { margin: 0; font-family: Arial, Helvetica, sans-serif; background: #172033; color: white; }
+.app { max-width: 1200px; margin: auto; padding: 28px 25px 50px; }
+.head { display: flex; justify-content: space-between; align-items: center; gap: 20px; flex-wrap: wrap; margin-bottom: 20px; }
+.eyebrow { font-size: 13px; font-weight: 700; letter-spacing: 2px; color: #aab6e8; }
+h1 { font-size: 40px; margin: 6px 0 0; }
+.join { display: flex; align-items: center; gap: 14px; background: white; color: #172033; border-radius: 16px; padding: 12px 16px; }
+.join #qr { width: 96px; height: 96px; }
+.join #qr:empty { display: none; }
+.join #qr img, .join #qr canvas { width: 96px !important; height: 96px !important; }
+.join p { margin: 0; font-size: 13px; color: #5d6678; }
+.join strong { display: block; font-size: 15px; word-break: break-all; color: #172033; max-width: 260px; }
+.tabs, .sorts { display: flex; gap: 8px; flex-wrap: wrap; }
+.bar { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
+.tab, .srt, .tool { border: 2px solid #33405f; border-radius: 30px; padding: 10px 16px; background: transparent; color: #dfe4f5; font: bold 14px Arial; cursor: pointer; }
+.tab[aria-pressed="true"], .srt[aria-pressed="true"] { background: #6577b8; border-color: #6577b8; color: white; }
+button:focus-visible { outline: 3px solid #ffd166; outline-offset: 2px; }
+.board { display: grid; gap: 8px; }
+.row { display: grid; grid-template-columns: 70px 1fr 140px 170px 120px; align-items: center; gap: 12px; background: #222d47; border-radius: 14px; padding: 14px 18px; font-size: 18px; animation: pop .4s ease; }
+.row.hdr { background: none; font-size: 12px; letter-spacing: 1.5px; color: #8992a5; padding-top: 0; padding-bottom: 0; animation: none; }
+.row .rk { font: bold 26px Arial; }
+.row .nm { font-weight: bold; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.row .nm small { display: block; font-weight: normal; font-size: 13px; color: #8992a5; margin-top: 3px; }
+.row .sc { font: bold 22px Arial; color: #ffd166; }
+.row .tm { color: #c3cadb; font-size: 15px; }
+.row.g1 { background: linear-gradient(90deg, #6b5410, #222d47); }
+.row.g2 { background: linear-gradient(90deg, #4a5468, #222d47); }
+.row.g3 { background: linear-gradient(90deg, #5c3b22, #222d47); }
+@keyframes pop { from { transform: scale(.97); opacity: 0; } }
+.empty { text-align: center; padding: 60px 20px; color: #8992a5; font-size: 18px; line-height: 1.6; background: #222d47; border-radius: 16px; }
+.foot { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-top: 20px; color: #8992a5; font-size: 13px; align-items: center; }
+.warn { background: #5c2a24; border-radius: 14px; padding: 16px 18px; line-height: 1.6; margin-bottom: 18px; }
+.warn code { background: rgba(0,0,0,.3); padding: 2px 6px; border-radius: 6px; }
+@media (max-width: 760px) {
+  h1 { font-size: 28px; }
+  .row { grid-template-columns: 46px 1fr 90px; font-size: 16px; padding: 12px 14px; }
+  .row .tm, .row .dt { display: none; }
+  .row .rk { font-size: 20px; }
+  .row .sc { font-size: 18px; }
+  .join { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; } }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="head">
+    <div><div class="eyebrow">REMOTE SENSING • IMAGERY TYPES</div><h1>🏆 Class Leaderboard</h1></div>
+    <div class="join"><div id="qr"></div><div><p>Students join here:</p><strong id="joinurl"></strong></div></div>
+  </div>
+  <div id="warn"></div>
+  <div class="bar">
+    <div class="tabs" id="tabs"></div>
+    <div class="sorts"><button class="srt" id="s-time" onclick="setSort('time')">⏱ Finish order</button><button class="srt" id="s-score" onclick="setSort('score')">⭐ Top score</button></div>
+  </div>
+  <div class="board" id="board" aria-live="polite"></div>
+  <div class="foot">
+    <span id="status">Loading…</span>
+    <span><button class="tool" onclick="newRound()">🔄 New round</button> <button class="tool" onclick="showAll()">Show all rounds</button></span>
+  </div>
+</div>
+<script src="scores.js"></script>
+<script>
+const GAMES = [
+  { id: "detective", name: "🛰️ Sensor Detective" },
+  { id: "wordsearch", name: "🔍 Word Search" },
+  { id: "unscramble", name: "🧩 Unscramble" },
+  { id: "overall", name: "👑 Overall" }
+];
+const ROUND_KEY = "sd-round-since";
+const store = { get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} } };
+let game = "detective", sort = "time", rows = [], since = Number(store.get(ROUND_KEY) || 0);
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const medal = i => ["🥇", "🥈", "🥉"][i] || (i + 1);
+const clock = ms => new Date(ms).toLocaleTimeString([], { hour: "numeric", minute: "2-digit", second: "2-digit" });
+
+/* join link + QR code for the student start page */
+const joinUrl = new URL("index.html", location.href).href;
+$("joinurl").textContent = joinUrl.replace(/^https?:\/\//, "");
+const qrScript = document.createElement("script");
+qrScript.src = "https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js";
+qrScript.onload = () => { try { new QRCode($("qr"), { text: joinUrl, width: 192, height: 192 }); } catch (e) {} };
+document.head.appendChild(qrScript);
+
+function renderTabs() {
+  $("tabs").innerHTML = GAMES.map(g => `<button class="tab" aria-pressed="${g.id === game}" onclick="game='${g.id}';render()">${g.name}</button>`).join("");
+  $("s-time").setAttribute("aria-pressed", sort === "time");
+  $("s-score").setAttribute("aria-pressed", sort === "score");
+}
+function setSort(s) { sort = s; render(); }
+function newRound() { since = Date.now(); store.set(ROUND_KEY, since); render(); }
+function showAll() { since = 0; store.set(ROUND_KEY, 0); render(); }
+
+/* one entry per player per game: first finish time, best score, attempts */
+function perGame(g) {
+  const m = {};
+  rows.filter(r => r[1] === g && r[0] >= since).sort((a, b) => a[0] - b[0]).forEach(([t, , name, score, detail, player]) => {
+    const key = (player || "") + "|" + String(name).toLowerCase();
+    if (!m[key]) m[key] = { name, first: t, best: Number(score), detail, tries: 0 };
+    const e = m[key];
+    e.tries++; e.name = name;
+    if (Number(score) > e.best) { e.best = Number(score); e.detail = detail; }
+  });
+  return Object.values(m);
+}
+function overall() {
+  const ids = ["detective", "wordsearch", "unscramble"], all = {};
+  ids.forEach(g => perGame(g).forEach(e => {
+    const key = String(e.name).toLowerCase();
+    const o = all[key] || (all[key] = { name: e.name, best: 0, games: 0, first: 0 });
+    o.best += e.best; o.games++; o.first = Math.max(o.first, e.first);
+  }));
+  return Object.values(all).map(o => ({ ...o, detail: `${o.games}/3 games`, done: o.games === 3 }));
+}
+function render() {
+  renderTabs();
+  let list = game === "overall" ? overall() : perGame(game);
+  if (game === "overall" && sort === "time") list = list.filter(e => e.done);
+  list.sort(sort === "time" ? (a, b) => a.first - b.first : (a, b) => b.best - a.best || a.first - b.first);
+  const timeHdr = game === "overall" ? "FINISHED ALL 3" : "FINISHED";
+  $("board").innerHTML = list.length
+    ? `<div class="row hdr"><span>RANK</span><span>PLAYER</span><span>SCORE</span><span class="tm">${timeHdr}</span><span class="dt">DETAIL</span></div>` +
+      list.map((e, i) => `<div class="row${i < 3 ? " g" + (i + 1) : ""}"><span class="rk">${medal(i)}</span><span class="nm">${esc(e.name)}${e.tries > 1 ? `<small>${e.tries} attempts, best score shown</small>` : ""}</span><span class="sc">${e.best}</span><span class="tm">${clock(e.first)}</span><span class="dt tm">${esc(e.detail || "")}</span></div>`).join("")
+    : `<div class="empty">${game === "overall" && sort === "time" ? "Nobody has finished all three games yet." : "Waiting for the first player to finish…"}<br>Share the join link or QR code above.</div>`;
+}
+async function load() {
+  if (!window.Scores || !Scores.enabled) {
+    $("warn").innerHTML = `<div class="warn"><strong>Leaderboard not connected yet.</strong> Paste your Google Apps Script web app URL into <code>SCORE_URL</code> at the top of <code>scores.js</code>, then re-upload the folder. Setup steps are in <code>leaderboard-apps-script.gs</code>.</div>`;
+    $("status").textContent = "Not connected";
+    render();
+    return;
+  }
+  try {
+    rows = await Scores.list();
+    $("status").textContent = `Live · updated ${clock(Date.now())}${since ? " · showing this round only" : ""}`;
+  } catch (e) {
+    $("status").textContent = "⚠️ Couldn't reach the score sheet. Retrying…";
+  }
+  render();
+}
+render();
+load();
+setInterval(() => { if (window.Scores && Scores.enabled) load(); }, 5000);
+</script>
+</body>
+</html>

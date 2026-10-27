@@ -1,0 +1,981 @@
+<!-- SENSOR DETECTIVE: a 5E game for Imagery Types (VNIR, SWIR, TIR, Hyperspectral, Microwave, LiDAR).
+     One file that runs Engage → Explore → Explain → Elaborate → Evaluate as a single mission with XP and badges.
+     Paste into the CodePen HTML pane (style + script included) or open directly in a browser.
+     Same palette and fonts as the other stage pens so everything feels like one lesson. -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sensor Detective</title>
+<style>
+* { box-sizing: border-box; }
+body { margin: 0; font-family: Arial, Helvetica, sans-serif; background: #f4f7fb; color: #172033; }
+.app { max-width: 1100px; margin: auto; padding: 0 25px 60px; }
+
+/* ---------- top HUD ---------- */
+.hud { position: sticky; top: 0; z-index: 10; background: rgba(244,247,251,.94); backdrop-filter: blur(6px); display: flex; align-items: center; gap: 14px; padding: 14px 0; margin-bottom: 18px; border-bottom: 1px solid #e3e8f1; }
+.brand { font-weight: bold; font-size: 17px; white-space: nowrap; }
+.stages { display: flex; gap: 6px; flex: 1; justify-content: center; flex-wrap: wrap; }
+.st { border: 2px solid #dfe4ed; border-radius: 30px; padding: 8px 14px; background: white; font: bold 13px Arial; color: #5d6678; cursor: pointer; }
+.st[aria-current="step"] { background: #6577b8; border-color: #6577b8; color: white; }
+.st.done { border-color: #4caf75; }
+.st.done::after { content: " ✓"; color: #4caf75; }
+.st[aria-current="step"].done::after { color: white; }
+.st:disabled { opacity: .45; cursor: not-allowed; }
+.xp { background: #172033; color: white; border-radius: 30px; padding: 8px 14px; font: bold 13px Arial; white-space: nowrap; }
+.xp b { color: #ffd166; }
+
+header { text-align: center; margin: 22px 0 26px; }
+.eyebrow { font-size: 13px; font-weight: 700; letter-spacing: 2px; color: #5268a5; margin-bottom: 12px; }
+h1 { font-size: 40px; margin: 0 0 12px; }
+.subtitle { max-width: 700px; margin: auto; line-height: 1.6; color: #5d6678; font-size: 17px; }
+
+.panel { background: white; border-radius: 22px; padding: 28px; box-shadow: 0 6px 20px rgba(0,0,0,.06); margin-bottom: 20px; }
+.panel h2 { margin: 0 0 6px; font-size: 24px; }
+.panel .sub { margin: 0 0 16px; color: #7a8393; line-height: 1.5; }
+.bridge { display: flex; gap: 15px; align-items: flex-start; background: white; border-radius: 15px; padding: 20px; margin-bottom: 20px; box-shadow: 0 5px 20px rgba(0,0,0,.06); border-left: 5px solid #6577b8; }
+.bridge > span { font-size: 28px; }
+.bridge p { margin: 6px 0 0; color: #667085; line-height: 1.6; }
+.big-q { text-align: center; font-size: 24px; font-weight: bold; color: #5268a5; margin: 6px 0 0; line-height: 1.4; }
+
+.btn { border: 0; border-radius: 12px; padding: 14px 26px; background: #6577b8; color: white; font-size: 16px; font-weight: bold; cursor: pointer; }
+.btn:hover { opacity: .9; }
+.btn:disabled { background: #c3cadb; cursor: not-allowed; opacity: 1; }
+.btn.ghost { background: white; color: #5268a5; border: 2px solid #dfe4ed; }
+.btn.wide { display: block; width: 100%; max-width: 360px; margin: 22px auto 0; }
+button:focus-visible, textarea:focus-visible, input:focus-visible, svg [data-r]:focus-visible { outline: 3px solid #172033; outline-offset: 2px; }
+
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.fig { margin: 0; }
+.fig svg { display: block; width: 100%; height: auto; border-radius: 14px; }
+.fig figcaption { font-size: 13px; color: #7a8393; margin-top: 8px; line-height: 1.4; }
+
+/* ---------- predictions / options ---------- */
+.pred { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; padding: 14px 0; border-bottom: 1px solid #eef1f6; }
+.pred:last-child { border-bottom: 0; }
+.pred p { margin: 0; line-height: 1.5; }
+.seg3 { display: flex; gap: 6px; }
+.seg3 button { border: 2px solid #dfe4ed; border-radius: 10px; padding: 8px 12px; background: #f8f9fc; font: bold 13px Arial; color: #5d6678; cursor: pointer; }
+.seg3 button[aria-pressed="true"] { background: #6577b8; border-color: #6577b8; color: white; }
+textarea { width: 100%; min-height: 96px; border: 2px solid #dfe4ed; border-radius: 12px; padding: 12px; font: 15px/1.5 Arial; color: #172033; resize: vertical; }
+input[type=text] { border: 2px solid #dfe4ed; border-radius: 10px; padding: 10px 12px; font: 15px Arial; width: 100%; max-width: 320px; }
+
+.chips { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.chip { border: 2px solid #dfe4ed; border-radius: 14px; padding: 12px 8px; background: #f8f9fc; cursor: pointer; text-align: center; font: inherit; color: inherit; transition: .2s ease; }
+.chip .ic { display: block; font-size: 24px; }
+.chip .nm { display: block; font-weight: bold; margin-top: 4px; font-size: 14px; }
+.chip:hover { border-color: #6577b8; }
+.chip[aria-pressed="true"] { background: #6577b8; border-color: #6577b8; color: white; }
+.chip.right { background: #edf8f1; border-color: #4caf75; color: #172033; }
+.chip.wrong { background: #fdf0ee; border-color: #d9695a; color: #172033; }
+.chip.missed { border-style: dashed; border-color: #4caf75; }
+.chip:disabled { cursor: default; }
+
+.opts { display: grid; gap: 10px; }
+.opt { display: flex; gap: 12px; align-items: center; text-align: left; border: 2px solid #dfe4ed; border-radius: 14px; padding: 14px 16px; background: #f8f9fc; font: 16px Arial; color: #172033; cursor: pointer; }
+.opt b { display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: white; border: 2px solid #dfe4ed; font-size: 13px; flex: none; }
+.opt:hover { border-color: #6577b8; }
+.opt.right { background: #edf8f1; border-color: #4caf75; }
+.opt.wrong { background: #fdf0ee; border-color: #d9695a; }
+.opt:disabled { cursor: default; }
+
+.feedback { margin-top: 18px; padding: 18px 20px; border-radius: 15px; background: #edf8f1; border: 1px solid #b9dfc6; line-height: 1.6; }
+.feedback.partial { background: #fff8e8; border-color: #ecd49a; }
+.feedback.bad { background: #fdf0ee; border-color: #f0c2bb; }
+.feedback h3 { margin: 0 0 6px; font-size: 17px; }
+.feedback p { margin: 6px 0 0; }
+.say { margin-top: 14px; padding: 14px 18px; border-left: 4px solid #6577b8; background: #f8f9fc; line-height: 1.5; }
+
+/* ---------- explore lab ---------- */
+.lab { display: grid; grid-template-columns: 1.45fr 1fr; gap: 20px; align-items: start; }
+.viewbar { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-bottom: 12px; }
+.vbtn { border: 2px solid #dfe4ed; border-radius: 12px; padding: 8px 4px; background: white; font: bold 13px Arial; color: #5d6678; cursor: pointer; position: relative; }
+.vbtn small { display: block; font-weight: normal; font-size: 11px; color: #8992a5; margin-top: 2px; }
+.vbtn[aria-pressed="true"] { background: #6577b8; border-color: #6577b8; color: white; }
+.vbtn[aria-pressed="true"] small { color: #dfe4f5; }
+.vbtn.solved::after { content: "✓"; position: absolute; top: -7px; right: -5px; background: #4caf75; color: white; border-radius: 50%; width: 18px; height: 18px; font-size: 11px; line-height: 18px; }
+.scene svg { display: block; width: 100%; height: auto; border-radius: 16px; }
+.scene svg [data-r] { cursor: crosshair; }
+.scene svg [data-r]:hover { filter: brightness(1.15); }
+.toggles { display: flex; gap: 8px; margin: 12px 0 8px; flex-wrap: wrap; align-items: center; }
+.tg { border: 2px solid #dfe4ed; border-radius: 30px; padding: 8px 14px; background: white; font: bold 13px Arial; color: #5d6678; cursor: pointer; }
+.tg[aria-pressed="true"] { background: #172033; border-color: #172033; color: white; }
+.legend { font-size: 13px; color: #667085; line-height: 1.5; }
+.surfaces { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.surfaces button { border: 1px solid #dfe4ed; border-radius: 20px; padding: 5px 10px; background: white; font: 12px Arial; color: #5d6678; cursor: pointer; }
+.surfaces button:hover { border-color: #6577b8; }
+.mission { border: 2px solid #6577b8; border-radius: 16px; padding: 16px; background: #f8f9fc; }
+.mission h3 { margin: 0 0 6px; font-size: 15px; color: #5268a5; }
+.mission p { margin: 0; line-height: 1.5; }
+.mission.solved { border-color: #4caf75; background: #edf8f1; }
+.msg { margin-top: 10px; font-size: 14px; line-height: 1.5; min-height: 20px; color: #5d6678; }
+.msg.good { color: #398257; font-weight: bold; }
+.msg.warn { color: #b0563f; }
+.readout { margin-top: 14px; border-radius: 14px; background: #172033; color: #dfe4f5; padding: 14px 16px; font: 13px/1.5 "Courier New", monospace; min-height: 70px; }
+.readout b { color: #ffd166; }
+.readout svg { display: block; width: 100%; height: auto; margin-top: 6px; }
+.notebook { margin-top: 18px; }
+.notebook h3 { margin: 0 0 10px; font-size: 15px; }
+.clue { display: flex; gap: 10px; padding: 10px 12px; border-radius: 12px; background: #f8f9fc; margin-bottom: 8px; font-size: 14px; line-height: 1.45; color: #8992a5; }
+.clue strong { color: #172033; white-space: nowrap; }
+.clue.got { background: #fff8e8; color: #172033; }
+
+.stress { width: 100%; border-collapse: collapse; font-size: 14px; }
+.stress th, .stress td { padding: 10px 8px; border-bottom: 1px solid #e6eaf2; text-align: center; }
+.stress th:first-child, .stress td:first-child { text-align: left; }
+.stress th { color: #5268a5; font-size: 13px; }
+.yn { display: inline-flex; gap: 4px; }
+.yn button { border: 2px solid #dfe4ed; border-radius: 8px; padding: 5px 9px; background: white; font: bold 12px Arial; color: #5d6678; cursor: pointer; }
+.yn button[aria-pressed="true"] { background: #6577b8; border-color: #6577b8; color: white; }
+.yn.right button[aria-pressed="true"] { background: #4caf75; border-color: #4caf75; }
+.yn.wrong button[aria-pressed="true"] { background: #d9695a; border-color: #d9695a; }
+
+/* ---------- explain ---------- */
+.spectrum { margin-bottom: 18px; }
+.spectrum h3 { margin: 0 0 12px; font-size: 15px; color: #667085; font-weight: normal; }
+.strip { display: flex; gap: 4px; }
+.seg { flex: 1; padding: 10px 4px; text-align: center; font-size: 13px; border-radius: 8px; background: #e8ecf4; color: #8992a5; transition: .3s ease; }
+.seg small { display: block; font-size: 11px; margin-top: 2px; }
+.seg.wide { flex: 1.4; }
+.seg.on { background: #6577b8; color: white; }
+.strip-note { margin: 10px 0 0; font-size: 13px; color: #7a8393; line-height: 1.5; }
+.cases { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin-bottom: 16px; }
+.case { border: 2px solid #dfe4ed; border-radius: 14px; padding: 10px 6px; background: white; cursor: pointer; text-align: center; font: inherit; color: inherit; }
+.case .ic { display: block; font-size: 24px; }
+.case .nm { display: block; font-weight: bold; font-size: 13px; margin-top: 4px; }
+.case[aria-pressed="true"] { border-color: #6577b8; box-shadow: 0 0 0 3px rgba(101,119,184,.25); }
+.case.open { border-color: #4caf75; background: #edf8f1; }
+.facts { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px; }
+.fact { background: #f8f9fc; border-radius: 14px; padding: 14px 16px; }
+.fact.span { grid-column: 1 / -1; }
+.fact.limit { background: #fdf0ee; }
+.fact h3 { margin: 0 0 6px; font-size: 13px; color: #5268a5; letter-spacing: .5px; }
+.fact.limit h3 { color: #b0563f; }
+.fact p { margin: 0; line-height: 1.55; }
+.tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.tags span { background: white; border: 1px solid #dfe4ed; padding: 6px 11px; border-radius: 20px; font-size: 13px; }
+.pa { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: bold; background: #eef1fb; color: #5268a5; margin-left: 8px; vertical-align: middle; }
+.pa.active { background: #fff1e0; color: #b26a14; }
+.tbl { overflow-x: auto; }
+table.sum { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 760px; }
+table.sum th, table.sum td { text-align: left; padding: 10px; border-bottom: 1px solid #e6eaf2; vertical-align: top; line-height: 1.45; }
+table.sum th { color: #5268a5; font-size: 13px; }
+
+/* ---------- elaborate ---------- */
+.dots { display: flex; gap: 8px; justify-content: center; margin-bottom: 18px; flex-wrap: wrap; }
+.dot { width: 38px; height: 38px; border-radius: 50%; border: 2px solid #dfe4ed; background: white; font: bold 14px Arial; color: #8992a5; cursor: pointer; }
+.dot.cur { border-color: #6577b8; color: #6577b8; }
+.dot.done { background: #4caf75; border-color: #4caf75; color: white; }
+.place { display: flex; align-items: center; gap: 14px; margin-bottom: 8px; }
+.place .bigic { font-size: 44px; }
+.place h2 { margin: 0; }
+.place small { color: #6876a5; font-weight: bold; }
+.scenario { font-size: 18px; line-height: 1.6; margin: 10px 0 18px; }
+
+/* ---------- evaluate ---------- */
+.bar { height: 10px; background: #dfe4ed; border-radius: 20px; overflow: hidden; margin-bottom: 20px; }
+.bar div { height: 100%; width: 0; background: #6577b8; transition: width .4s ease; }
+.step { font-size: 12px; font-weight: bold; letter-spacing: 1.5px; color: #8992a5; margin-bottom: 8px; }
+.q { font-size: 20px; line-height: 1.5; margin: 0 0 18px; }
+.scale { display: flex; gap: 8px; }
+.scale button { flex: 1; border: 2px solid #dfe4ed; border-radius: 12px; padding: 12px; background: #f8f9fc; font: bold 16px Arial; cursor: pointer; }
+.scale button[aria-pressed="true"] { background: #6577b8; border-color: #6577b8; color: white; }
+.ends { display: flex; justify-content: space-between; font-size: 13px; color: #8992a5; margin: 6px 0 22px; }
+.tv { width: 100%; border-collapse: collapse; font-size: 14px; }
+.tv th, .tv td { text-align: left; padding: 10px 8px; border-bottom: 1px solid #e6eaf2; vertical-align: top; line-height: 1.45; }
+.tv th { color: #5268a5; font-size: 13px; }
+.cert { text-align: center; border: 3px double #6577b8; border-radius: 22px; padding: 30px 22px; background: linear-gradient(#fff, #f8f9fc); }
+.cert .medal { font-size: 64px; }
+.cert .score { font-size: 54px; font-weight: bold; color: #6577b8; margin: 6px 0; }
+.cert h2 { margin: 6px 0; font-size: 28px; }
+.badges { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; margin: 16px 0; }
+.badge { background: #fff8e8; border: 1px solid #ecd49a; border-radius: 30px; padding: 6px 12px; font-size: 13px; }
+.badge.off { background: #f1f3f7; border-color: #e3e8f1; color: #a2a9b8; }
+.rev { text-align: left; max-width: 560px; margin: 16px auto 0; padding: 0; list-style: none; }
+.rev li { padding: 6px 0; border-bottom: 1px solid #eef1f6; }
+
+/* ---------- misc ---------- */
+.finish { text-align: center; }
+.finish .fi { font-size: 56px; }
+.toast { position: fixed; left: 50%; bottom: 26px; transform: translate(-50%, 30px); background: #172033; color: white; border-radius: 30px; padding: 12px 20px; font: bold 15px Arial; opacity: 0; pointer-events: none; transition: .3s ease; z-index: 20; }
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+.toast b { color: #ffd166; }
+details.teacher { background: white; border-radius: 18px; padding: 16px 22px; box-shadow: 0 5px 20px rgba(0,0,0,.06); margin-top: 30px; }
+details.teacher summary { cursor: pointer; font-weight: bold; color: #5268a5; }
+details.teacher table { width: 100%; border-collapse: collapse; font-size: 14px; margin-top: 12px; }
+details.teacher th, details.teacher td { text-align: left; padding: 9px 8px; border-bottom: 1px solid #e6eaf2; vertical-align: top; line-height: 1.45; }
+details.teacher th { color: #5268a5; font-size: 13px; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 22px; }
+.muted { color: #7a8393; font-size: 14px; line-height: 1.5; }
+
+@media (max-width: 860px) {
+  .lab, .grid2 { grid-template-columns: 1fr; }
+  .viewbar { grid-template-columns: repeat(4, 1fr); }
+  .cases { grid-template-columns: repeat(3, 1fr); }
+  h1 { font-size: 30px; }
+  .hud { flex-wrap: wrap; }
+  .stages { order: 3; flex-basis: 100%; }
+}
+@media (max-width: 560px) {
+  .app { padding: 0 16px 50px; }
+  .panel { padding: 20px; }
+  .chips { grid-template-columns: repeat(2, 1fr); }
+  .facts { grid-template-columns: 1fr; }
+  .pred { grid-template-columns: 1fr; }
+  .strip { flex-wrap: wrap; } .seg, .seg.wide { flex: 1 1 30%; }
+  .st { padding: 7px 10px; font-size: 12px; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+@media print { .hud, details.teacher, .row, .toast { display: none !important; } body { background: white; } }
+</style>
+
+<div class="app">
+  <div class="hud">
+    <div class="brand">🛰️ Sensor Detective</div>
+    <nav class="stages" id="stages" aria-label="5E stages"></nav>
+    <div class="xp" aria-live="polite">⭐ <b id="xp">0</b> XP</div>
+  </div>
+
+  <main id="stage"></main>
+
+  <details class="teacher">
+    <summary>👩‍🏫 Teacher guide: how this game follows the 5E model</summary>
+    <table>
+      <thead><tr><th>Stage</th><th>Time</th><th>What students do</th><th>Why it works</th></tr></thead>
+      <tbody>
+        <tr><td><strong>🎯 Engage</strong></td><td>5–7 min</td><td>See a storm scene where the normal photo fails but another sensor still works. Commit to predictions about what satellites can and cannot see.</td><td>Creates a puzzle and surfaces prior ideas and misconceptions before instruction. Predictions are revisited in Evaluate.</td></tr>
+        <tr><td><strong>🔎 Explore</strong></td><td>15–20 min</td><td>Investigate six unnamed sensors over one landscape. Toggle night and clouds, probe surfaces, solve a mission per sensor, then run the stress test.</td><td>Inquiry before terminology: students find the patterns (vegetation, moisture, heat, fingerprints, all-weather, height) first.</td></tr>
+        <tr><td><strong>💡 Explain</strong></td><td>10–15 min</td><td>Unmask each mystery sensor by naming it, then read the formal concepts: wavelength, passive vs active, detection, example sensors, limitations.</td><td>Scientific vocabulary is attached to experiences students already had, which strengthens retention.</td></tr>
+        <tr><td><strong>🧭 Elaborate</strong></td><td>12–15 min</td><td>Dispatch the right imagery to eight real problems, some needing two types combined.</td><td>Transfer to new contexts and justification of choices. Good for small-group discussion before checking.</td></tr>
+        <tr><td><strong>🏆 Evaluate</strong></td><td>10 min</td><td>Quiz, written explanation, prediction revisit (then vs now), self-rating, certificate.</td><td>Retrieval practice plus metacognition. The results screen shows each student what to review.</td></tr>
+      </tbody>
+    </table>
+    <p class="muted">Stages unlock in order for students. Progress is saved in this browser. Projecting for a whole class? <button class="btn ghost" style="padding:6px 12px;font-size:13px" onclick="unlockAll()">Unlock all stages</button> <button class="btn ghost" style="padding:6px 12px;font-size:13px" onclick="resetAll(this)">Reset progress</button></p>
+    <p class="muted">The scene and readouts are simplified, illustrative values, not real measurements. For real imagery, pair the lesson with NASA Worldview, USGS EarthExplorer, or the Copernicus Browser.</p>
+  </details>
+</div>
+<div class="toast" id="toast" aria-live="polite"></div>
+
+<script>
+/* =====================================================================
+   DATA
+   ===================================================================== */
+const TYPES = {
+  VNIR:  { icon: "🌱", name: "VNIR", full: "Visible and Near-Infrared" },
+  SWIR:  { icon: "💧", name: "SWIR", full: "Shortwave Infrared" },
+  TIR:   { icon: "🌡️", name: "TIR", full: "Thermal Infrared" },
+  HYP:   { icon: "🔬", name: "Hyperspectral", full: "Hyperspectral Imagery" },
+  MW:    { icon: "📡", name: "Microwave/SAR", full: "Microwave / Radar (SAR)" },
+  LIDAR: { icon: "📏", name: "LiDAR", full: "Light Detection and Ranging" }
+};
+const TKEYS = Object.keys(TYPES);
+
+const STAGES = [
+  { id: "engage", name: "Engage", icon: "🎯" },
+  { id: "explore", name: "Explore", icon: "🔎" },
+  { id: "explain", name: "Explain", icon: "💡" },
+  { id: "elaborate", name: "Elaborate", icon: "🧭" },
+  { id: "evaluate", name: "Evaluate", icon: "🏆" }
+];
+
+/* ---------- the landscape (same place, every sensor) ---------- */
+const REGIONS = {
+  grass:  "Grassland",
+  forest: "Forest",
+  fieldA: "Field 1",
+  fieldB: "Field 2",
+  river:  "River",
+  burn:   "Burn scar",
+  rock1:  "Rock 1",
+  rock2:  "Rock 2",
+  city:   "City"
+};
+const SHAPES = {
+  grass:  `<rect x="0" y="0" width="400" height="250"/>`,
+  forest: `<path d="M0 0 H150 V68 Q112 96 72 88 Q34 98 0 112 Z"/>`,
+  fieldA: `<rect x="170" y="14" width="96" height="62" rx="2"/>`,
+  fieldB: `<rect x="278" y="14" width="96" height="62" rx="2"/>`,
+  river:  `<path d="M0 138 Q80 118 160 142 T320 138 T400 128 V150 Q340 164 320 160 T160 164 Q80 142 0 160 Z"/>`,
+  burn:   `<path d="M18 186 L80 174 L112 204 L86 240 L30 238 L8 214 Z"/>`,
+  rock1:  `<path d="M138 190 L164 180 L186 195 L176 216 L146 214 Z"/>`,
+  rock2:  `<path d="M196 204 L222 194 L242 210 L232 231 L200 229 Z"/>`,
+  city:   `<rect x="268" y="178" width="128" height="68" rx="3"/>`
+};
+const TREES = [[18,18,11],[44,14,10],[70,22,12],[98,14,10],[124,22,11],[30,44,12],[60,50,11],[90,44,12],[118,48,10],[20,74,10],[48,76,9],[80,70,10],[140,40,8]];
+const BLDGS = [[276,186,22,24],[304,190,18,18],[328,184,26,28],[362,188,24,20],[280,218,30,20],[318,220,20,20],[346,216,40,22]];
+
+/* fill colours: grass, forest, tree, fieldA, fieldB, river, burn, rock1, rock2, city, bldg */
+const PAL = {
+  photo: { grass:"#9cb87a", forest:"#3d7a45", tree:"#336b3b", fieldA:"#7fae5a", fieldB:"#88ab60", river:"#4f7fa8", burn:"#4a3b32", rock1:"#a89a86", rock2:"#a99b86", city:"#b8b4ac", bldg:"#8f8a82" },
+  A:     { grass:"#c8606a", forest:"#e0303a", tree:"#f04a52", fieldA:"#e5545d", fieldB:"#b17f7d", river:"#0f223a", burn:"#3a2e2a", rock1:"#c0a9a0", rock2:"#c1aaa0", city:"#8fa3b5", bldg:"#7c90a3" },
+  B:     { grass:"#9a9a9a", forest:"#666", tree:"#5c5c5c", fieldA:"#505050", fieldB:"#cfcfcf", river:"#121212", burn:"#e2e2e2", rock1:"#a4a4a4", rock2:"#a6a6a6", city:"#b6b6b6", bldg:"#a8a8a8" },
+  C:     { grass:"#e6f598", forest:"#66c2a5", tree:"#5ab69a", fieldA:"#abdda4", fieldB:"#fdae61", river:"#3288bd", burn:"#f46d43", rock1:"#fee08b", rock2:"#fee08b", city:"#d7191c", bldg:"#b30d1c" },
+  Cn:    { grass:"#5e9fd0", forest:"#abdda4", tree:"#9fd39a", fieldA:"#7fc0d0", fieldB:"#4f8fc8", river:"#fdae61", burn:"#3f6fb8", rock1:"#80b8d6", rock2:"#80b8d6", city:"#f46d43", bldg:"#d7191c" },
+  D:     { grass:"#9fb98c", forest:"#4f8f5a", tree:"#45824f", fieldA:"#8fbf6a", fieldB:"#c3b47a", river:"#3e6d96", burn:"#5a3d33", rock1:"#d08a3a", rock2:"#5f8fd0", city:"#b9b2c4", bldg:"#9a92a8" },
+  E:     { grass:"#6a6a6a", forest:"#a0a0a0", tree:"#b4b4b4", fieldA:"#727272", fieldB:"#6c6c6c", river:"#0b0b0b", burn:"#565656", rock1:"#8c8c8c", rock2:"#8e8e8e", city:"#cfcfcf", bldg:"#ffffff" },
+  F:     { grass:"#4a4a4a", forest:"#9a9a9a", tree:"#f4f4f4", fieldA:"#555", fieldB:"#515151", river:"#161616", burn:"#474747", rock1:"#7a7a7a", rock2:"#808080", city:"#5a5a5a", bldg:"#d2d2d2" }
+};
+
+/* views in Explore. night/cloud = does that condition block the view? */
+const VIEWS = {
+  photo: { label: "📷", sub: "Photo", night: true, cloud: true, legend: "A normal photo: true colour, like a phone camera. This is your baseline." },
+  A: { label: "A", sub: "Sensor A", night: true, cloud: true, legend: "Brighter red = stronger signal returned to Sensor A." },
+  B: { label: "B", sub: "Sensor B", night: true, cloud: true, legend: "Greyscale: white = high signal, black = signal absorbed." },
+  C: { label: "C", sub: "Sensor C", night: false, cloud: true, legend: "Colour scale: red = high, yellow = medium, blue = low." },
+  D: { label: "D", sub: "Sensor D", night: true, cloud: true, legend: "Click any surface to see the curve Sensor D records for that pixel." },
+  E: { label: "E", sub: "Sensor E", night: false, cloud: false, legend: "Greyscale and grainy: bright = lots of signal bounced back to the sensor." },
+  F: { label: "F", sub: "Sensor F", night: false, cloud: true, legend: "Greyscale: white = high above the ground, black = low." }
+};
+
+/* readouts per surface: A NIR %, B SWIR %, C day °C, C night °C, E backscatter, F height m, photo description */
+const READ = {
+  grass:  { A: 35, B: 30, C: 30, Cn: 14, E: "medium", F: 0.3, look: "pale green grass" },
+  forest: { A: 50, B: 15, C: 24, Cn: 16, E: "medium (signal scatters inside the canopy)", F: 28, look: "dark green trees" },
+  fieldA: { A: 45, B: 12, C: 23, Cn: 15, E: "medium-low", F: 1.2, look: "green crops" },
+  fieldB: { A: 25, B: 38, C: 34, Cn: 13, E: "medium-low", F: 0.8, look: "green crops" },
+  river:  { A: 3, B: 1, C: 19, Cn: 18, E: "very low (smooth water reflects the pulse away)", F: 0, look: "blue water" },
+  burn:   { A: 12, B: 40, C: 41, Cn: 12, E: "low", F: 0.2, look: "dark brown ground" },
+  rock1:  { A: 30, B: 32, C: 36, Cn: 15, E: "medium", F: 2.0, look: "tan rock" },
+  rock2:  { A: 30, B: 33, C: 36, Cn: 15, E: "medium", F: 2.5, look: "tan rock (looks the same as Rock 1)" },
+  city:   { A: 22, B: 28, C: 45, Cn: 27, E: "very high (buildings bounce it straight back)", F: 15, look: "grey roofs and pavement" }
+};
+
+/* spectral curves for Sensor D: [wavelength µm, reflectance] control points */
+const CURVES = {
+  forest: [[.4,.04],[.5,.06],[.55,.11],[.65,.05],[.68,.04],[.74,.45],[.8,.5],[1.1,.48],[1.3,.42],[1.45,.22],[1.65,.32],[1.8,.25],[1.95,.08],[2.2,.18],[2.5,.08]],
+  grass:  [[.4,.05],[.55,.1],[.68,.06],[.75,.36],[1.1,.38],[1.45,.22],[1.65,.33],[1.95,.12],[2.2,.22],[2.5,.12]],
+  fieldA: [[.4,.04],[.55,.12],[.68,.04],[.74,.42],[1.1,.45],[1.45,.2],[1.65,.28],[1.95,.07],[2.2,.15],[2.5,.07]],
+  fieldB: [[.4,.06],[.55,.12],[.68,.1],[.75,.28],[1.1,.31],[1.45,.29],[1.65,.4],[1.95,.25],[2.2,.36],[2.5,.26]],
+  river:  [[.4,.08],[.5,.07],[.6,.04],[.7,.02],[.9,.01],[2.5,0]],
+  burn:   [[.4,.04],[.7,.06],[1.0,.1],[1.65,.2],[2.2,.25],[2.5,.24]],
+  rock1:  [[.4,.2],[.7,.32],[1.0,.38],[1.38,.36],[1.42,.3],[1.46,.36],[1.9,.37],[1.93,.32],[1.97,.38],[2.12,.42],[2.2,.2],[2.28,.41],[2.5,.37]],
+  rock2:  [[.4,.12],[.55,.2],[.7,.33],[.9,.22],[1.1,.35],[1.6,.4],[2.2,.41],[2.33,.24],[2.42,.37],[2.5,.35]],
+  city:   [[.4,.12],[.7,.17],[1.0,.2],[1.6,.23],[2.5,.22]]
+};
+
+/* missions in Explore, one per mystery sensor */
+const MISSIONS = {
+  A: { q: "Which surface glows brightest in Sensor A? Click it on the map.", ans: "forest",
+       near: { fieldA: "Close! Field 1 is bright, but one surface glows even more." },
+       clue: "Healthy vegetation is extremely bright in Sensor A, even though leaves only look medium-green to our eyes." },
+  B: { q: "Field 1 and Field 2 look almost the same in the photo. One is irrigated, one is in drought. In Sensor B, click the DRY field.", ans: "fieldB",
+       near: { fieldA: "That one is dark here. Notice the river is dark too. What do the river and Field 1 have in common?" },
+       clue: "Sensor B is sensitive to moisture: water and wet surfaces look dark, dry ones look bright." },
+  C: { q: "Switch on 🌙 Night. Which surface stays warmest after sunset? Click it.", ans: "city", need: { night: true },
+       clue: "Sensor C measures heat given off by surfaces, and it keeps working at night." },
+  D: { q: "Rock 1 and Rock 2 look identical in the photo. In Sensor D, click each rock to see its curve. Which rock has a deep dip at 2.2 µm?", ans: "rock1", choice: ["rock1", "rock2"],
+       clue: "Sensor D records hundreds of narrow bands, a detailed spectral fingerprint for every pixel." },
+  E: { q: "Turn on BOTH ☁️ Clouds and 🌙 Night. Can Sensor E still see? Click the darkest surface.", ans: "river", need: { night: true, cloud: true },
+       clue: "Sensor E sees through clouds, day or night. Smooth water bounces its signal away and looks dark." },
+  F: { q: "Click the tallest feature in the scene.", ans: "forest",
+       near: { city: "Buildings are tall, but something here is taller." },
+       clue: "Sensor F measures height and 3D shape by timing how long its pulses take to come back." }
+};
+const MYSTERY = { A: "VNIR", B: "SWIR", C: "TIR", D: "HYP", E: "MW", F: "LIDAR" };
+
+/* stress test answers: [works at night, sees through cloud] */
+const STRESS = { A: [false, false], B: [false, false], C: [true, false], D: [false, false], E: [true, true], F: [true, false] };
+
+/* ---------- explain content ---------- */
+const BANDS = ["Visible", "Near-IR", "Shortwave IR", "Thermal IR", "Microwave"];
+const BAND_SUB = ["~0.4–0.7 µm", "~0.7–1.0 µm", "~1.0–2.5 µm", "~8–14 µm", "~1 mm–1 m"];
+const INFO = {
+  VNIR: { mode: "Passive (reflected sunlight)", active: false,
+    what: "Records sunlight reflected from the surface, in the colours we see plus the near-infrared just beyond red.",
+    energy: "Reflected sunlight, roughly 0.4–1.0 µm.",
+    detects: "What things look like, plus vegetation vigour. Healthy leaves reflect a lot of near-infrared, which is why the forest glowed.",
+    uses: ["Vegetation (NDVI)", "Land cover", "Water", "Urban areas"],
+    platforms: ["Landsat 8/9 OLI", "Sentinel-2 MSI", "MODIS"],
+    limit: "Needs daylight and clear skies. A few broad bands cannot separate materials that look alike.",
+    on: [0, 1], note: "Visible light plus the near-infrared band next to it." },
+  SWIR: { mode: "Passive (reflected sunlight)", active: false,
+    what: "Records reflected sunlight at longer infrared wavelengths, where water and some minerals absorb strongly.",
+    energy: "Reflected sunlight, roughly 1.0–2.5 µm.",
+    detects: "Moisture and material properties. The irrigated field looked dark because its water absorbed the energy.",
+    uses: ["Drought and plant water", "Burn severity (NBR)", "Minerals", "Snow vs cloud"],
+    platforms: ["Sentinel-2 bands 11–12", "Landsat 8/9 bands 6–7", "ASTER"],
+    limit: "Still needs sun and clear skies. Bands are often coarser (e.g. 20 m on Sentinel-2) and few in number.",
+    on: [2], note: "Longer than near-IR, but still reflected sunlight." },
+  TIR: { mode: "Passive (emitted heat)", active: false,
+    what: "Measures heat energy that surfaces give off themselves, not reflected sunlight.",
+    energy: "Emitted thermal energy, roughly 8–14 µm.",
+    detects: "Surface temperature. The city stayed warm after dark because pavement and roofs store heat.",
+    uses: ["Land surface temperature", "Urban heat islands", "Active fires", "Volcanoes"],
+    platforms: ["Landsat 8/9 TIRS", "MODIS LST", "ECOSTRESS"],
+    limit: "Blocked by clouds. Coarse spatial resolution (100 m Landsat, 1 km MODIS). Needs emissivity and atmospheric correction.",
+    on: [3], note: "Emitted heat, not reflected light. That is why it works at night." },
+  HYP: { mode: "Passive (reflected sunlight)", active: false,
+    what: "Records tens to hundreds of narrow, continuous bands for every pixel, a full spectral curve instead of a few samples.",
+    energy: "Usually reflected sunlight from visible through shortwave infrared (0.4–2.5 µm).",
+    detects: "Material identity. Rock 1's dip at 2.2 µm is a clay fingerprint that broad-band sensors smear out.",
+    uses: ["Mineral mapping", "Plant species", "Soils", "Water quality"],
+    platforms: ["AVIRIS (airborne)", "EnMAP", "PRISMA", "EMIT"],
+    limit: "Huge data volumes, noisy narrow bands, limited coverage and complex processing. Needs sun and clear skies.",
+    on: [0, 1, 2], note: "Defined by how finely it slices the spectrum, not by one region." },
+  MW: { mode: "Active (sends its own microwaves)", active: true,
+    what: "Usually synthetic aperture radar (SAR). The sensor sends a microwave pulse and records what bounces back.",
+    energy: "Its own microwave signal, about 1 mm to 1 m wavelength.",
+    detects: "Roughness, structure and moisture. Smooth water sends the pulse away and looks dark; buildings bounce it straight back.",
+    uses: ["Flood mapping", "Soil moisture", "Ground deformation (InSAR)", "Sea ice and oil spills"],
+    platforms: ["Sentinel-1", "RADARSAT", "NISAR"],
+    limit: "Grainy speckle noise, no natural colour, harder to interpret, and distortions on steep terrain (layover, shadow).",
+    on: [4], note: "Longest wavelengths here. The sensor supplies its own energy." },
+  LIDAR: { mode: "Active (sends its own laser pulses)", active: true,
+    what: "Fires laser pulses and times their return. Distance = speed of light × travel time ÷ 2.",
+    energy: "Its own laser pulses, often near-infrared (around 1.06 µm).",
+    detects: "Elevation and 3D structure: ground, treetops, building heights.",
+    uses: ["Terrain models (DEM)", "Tree and canopy height", "Buildings", "Archaeology under forest"],
+    platforms: ["Airborne LiDAR (USGS 3DEP)", "GEDI", "ICESat-2"],
+    limit: "Blocked by thick cloud. Expensive, and coverage is limited: mostly airborne, and spaceborne tracks are sparse.",
+    on: [], note: "Defined by its method (timed laser pulses), not by a band on this scale." }
+};
+
+/* ---------- elaborate scenarios ---------- */
+const SCENARIOS = [
+  { icon: "🏙️", title: "The Hot City", text: "A city wants to find the neighbourhoods with the highest surface temperatures so it can plan cooling programs.",
+    ans: ["TIR"], why: "Thermal infrared measures emitted heat, the basis of land surface temperature and urban heat island maps.",
+    trap: "Common trap: VNIR shows where it is green or paved, but not how hot a surface is." },
+  { icon: "🌊", title: "Storm Flooding", text: "Heavy storms have flooded a river valley. Thick cloud covers the area and it is night. Responders need a flood map now.",
+    ans: ["MW"], why: "Radar supplies its own energy and passes through cloud, so SAR works at night and in storms. Calm floodwater looks dark.",
+    trap: "Common trap: any optical sensor (VNIR, SWIR, hyperspectral) is blocked by cloud and needs daylight." },
+  { icon: "🌲", title: "Forest Height", text: "A forestry team needs the height of trees across a large forest to estimate how much carbon it stores.",
+    ans: ["LIDAR"], why: "LiDAR times laser returns from treetops and the ground, giving canopy height directly.",
+    trap: "Common trap: VNIR shows how green the forest is, not how tall it is." },
+  { icon: "⛰️", title: "Mineral Survey", text: "Geologists want to tell apart several minerals that look almost identical in a normal photo.",
+    ans: ["HYP"], why: "Many narrow bands give each mineral a detailed spectral fingerprint, like Rock 1's dip at 2.2 µm.",
+    trap: "Common trap: SWIR helps with some minerals, but a few broad bands cannot separate many similar ones." },
+  { icon: "🔥", title: "After the Wildfire", text: "Managers want to map a burn scar and check how damaged and dry the remaining vegetation is.",
+    ans: ["SWIR", "VNIR"], why: "SWIR is sensitive to moisture and burned surfaces; near-infrared shows vegetation health. The Normalized Burn Ratio combines them.",
+    trap: "Common trap: picking only one. Comparing the two bands is what reveals the damage." },
+  { icon: "🌾", title: "Drought Watch", text: "An agency wants an early warning when crops start running short of water, before they visibly turn brown.",
+    ans: ["SWIR", "VNIR"], why: "SWIR drops as leaf water drops, and NIR shows plant vigour. Together they catch stress before the eye can.",
+    trap: "Common trap: TIR can help too, but the classic pairing for plant water content is VNIR + SWIR." },
+  { icon: "🏚️", title: "Sinking Ground", text: "Engineers suspect the ground under a city is sinking a few millimetres per year due to groundwater pumping.",
+    ans: ["MW"], why: "Interferometric SAR (InSAR) compares the phase of radar images over time and detects millimetre-scale movement.",
+    trap: "Common trap: LiDAR measures elevation, but repeat surveys are rare and not precise enough for millimetres per year over a whole city." },
+  { icon: "🌳", title: "Cooler Streets", text: "Planners want to plant trees where it is hottest AND where vegetation is currently missing.",
+    ans: ["TIR", "VNIR"], why: "TIR finds the heat and VNIR (NDVI) finds where vegetation is sparse. Overlay them in GIS to choose sites.",
+    trap: "Common trap: stopping at temperature. The question asks about vegetation too." }
+];
+
+/* ---------- engage predictions (revisited in Evaluate) ---------- */
+const PREDS = [
+  { s: "Satellites can only record what human eyes can see.", truth: "Disagree", why: "Most sensors record energy our eyes can't see: near-infrared, shortwave infrared, thermal and microwave." },
+  { s: "Satellites can't collect useful images at night.", truth: "Disagree", why: "Thermal sensors measure emitted heat, and active sensors (radar, LiDAR) bring their own energy." },
+  { s: "Clouds block every kind of satellite sensor.", truth: "Disagree", why: "Microwaves pass through clouds, so radar (SAR) keeps working in storms." },
+  { s: "A sensor can measure how tall a tree is.", truth: "Agree", why: "LiDAR times laser pulses from the treetop and the ground to measure height." }
+];
+
+/* ---------- evaluate quiz ---------- */
+const QUIZ = [
+  { q: "Which imagery type is most directly used to map land surface temperature?", o: ["VNIR", "SWIR", "TIR", "LiDAR"], a: 2, topic: "TIR and surface temperature",
+    why: "TIR measures heat emitted by the surface." },
+  { q: "Which technology gives detailed 3D elevation using timed laser pulses?", o: ["TIR", "Microwave", "LiDAR", "VNIR"], a: 2, topic: "LiDAR",
+    why: "LiDAR converts each pulse's travel time into distance, giving elevation and structure." },
+  { q: "What makes hyperspectral imagery different from Landsat or Sentinel-2?", o: ["It uses thermal energy", "It records hundreds of narrow, continuous bands", "It sends its own laser", "It works through clouds"], a: 1, topic: "Hyperspectral",
+    why: "Many narrow bands give a full spectral curve, a fingerprint of the material." },
+  { q: "Which pair of sensors are ACTIVE, supplying their own energy?", o: ["VNIR and SWIR", "TIR and hyperspectral", "Microwave (SAR) and LiDAR", "All six"], a: 2, topic: "Passive vs active",
+    why: "Radar sends microwaves and LiDAR sends laser pulses. The others record sunlight or emitted heat." },
+  { q: "Roughly which wavelength range does SWIR cover?", o: ["0.4–0.7 µm", "1.0–2.5 µm", "8–14 µm", "1 mm–1 m"], a: 1, topic: "Wavelength ranges",
+    why: "SWIR is about 1.0–2.5 µm. Visible is 0.4–0.7, thermal 8–14 µm, microwave 1 mm–1 m." },
+  { q: "A team used Landsat's thermal band to compare the temperature of individual house roofs. The result is blurry. Most likely reason?", o: ["TIR only works at night", "Thermal bands have coarse resolution (about 100 m)", "Roofs do not emit heat", "Thermal sensors are active"], a: 1, topic: "Limitations of TIR",
+    why: "Landsat TIRS pixels are about 100 m, much bigger than a roof." },
+  { q: "Why does a flood look dark in a radar (SAR) image?", o: ["Water is cold", "Smooth water reflects the pulse away from the sensor", "Water absorbs visible light", "Clouds hide the water"], a: 1, topic: "How SAR works",
+    why: "Smooth surfaces act like a mirror, sending the radar pulse away, so little returns." },
+  { q: "Scientists want to track how drought is drying crops across a region. Which pair helps most?", o: ["VNIR and SWIR", "TIR and LiDAR", "Microwave and LiDAR", "LiDAR only"], a: 0, topic: "Combining VNIR and SWIR",
+    why: "VNIR shows plant vigour and SWIR shows water content." },
+  { q: "A city plan needs the hottest areas and building heights (for shade). Which pair fits best?", o: ["VNIR and SWIR", "TIR and LiDAR", "Microwave and hyperspectral", "SWIR only"], a: 1, topic: "Combining TIR and LiDAR",
+    why: "TIR finds the heat, and LiDAR gives building heights for shade analysis." }
+];
+const MODEL = "A strong answer says radar is an ACTIVE sensor: it sends its own microwave pulse and measures the echo. Microwaves pass through cloud, so it works at night and in storms. It does not take a picture of light; it measures roughness, structure and moisture, so its images are grainy greyscale, not colour photos.";
+
+/* =====================================================================
+   STATE (saved in this browser when possible)
+   ===================================================================== */
+const KEY = "sensor-detective-v1";
+const fresh = () => ({
+  stage: "engage", unlocked: 1, xp: 0, done: {},
+  engageReveal: false, pred: {}, guess: "",
+  view: "photo", night: false, cloud: false, clues: {}, seenRock: {}, stress: {}, stressChecked: false,
+  explainCur: "A", unmasked: {}, tries: {},
+  elabCur: 0, elab: {}, quizXp: {}, explainedXp: false,
+  ev: { step: 0, picks: [], text: "", reveal: false, pred2: {}, rating: 0, name: (() => { try { return localStorage.getItem("sd-player") || ""; } catch (e) { return ""; } })(), sent: false }
+});
+let S = fresh();
+try { const raw = localStorage.getItem(KEY); if (raw) S = Object.assign(fresh(), JSON.parse(raw)); } catch (e) {}
+function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+
+/* =====================================================================
+   HELPERS
+   ===================================================================== */
+const $ = id => document.getElementById(id);
+let toastTimer;
+function toast(html) {
+  const t = $("toast"); t.innerHTML = html; t.classList.add("show");
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove("show"), 1900);
+}
+function award(n, why) {
+  S.xp += n; $("xp").textContent = S.xp; save();
+  toast(`+<b>${n} XP</b> ${why || ""}`);
+}
+function complete(id) {
+  if (S.done[id]) return;
+  S.done[id] = true;
+  const i = STAGES.findIndex(s => s.id === id);
+  S.unlocked = Math.max(S.unlocked, i + 2);
+  save(); renderHud();
+}
+function go(id) { S.stage = id; save(); render(); window.scrollTo({ top: 0, behavior: "smooth" }); }
+function unlockAll() { S.unlocked = 5; save(); renderHud(); }
+let resetArmed = false;
+function resetAll(btn) {
+  if (!resetArmed) { resetArmed = true; if (btn) btn.textContent = "Click again to reset everything"; setTimeout(() => { resetArmed = false; if (btn) btn.textContent = "Reset progress"; }, 4000); return; }
+  resetArmed = false; S = fresh(); save(); render(); if (btn) btn.textContent = "Reset progress";
+}
+const sameSet = (a = [], b = []) => a.length === b.length && b.every(x => a.includes(x));
+const tname = k => TYPES[k].icon + " " + TYPES[k].name;
+
+/* ---------- scene renderer ---------- */
+let uid = 0;
+function scene(view, opts = {}) {
+  const night = !!opts.night, cloud = !!opts.cloud, id = "s" + (++uid);
+  const pal = view === "C" && night ? PAL.Cn : PAL[view];
+  const V = VIEWS[view];
+  const click = opts.interactive;
+  const reg = r => click ? `data-r="${r}" tabindex="0" role="button" aria-label="${REGIONS[r]}" onclick="probe('${r}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();probe('${r}')}"` : "";
+  const fillShape = (r, col) => SHAPES[r].replace("/>", ` fill="${col}" ${reg(r)}/>`);
+  let g = "";
+  g += fillShape("grass", pal.grass);
+  g += fillShape("forest", pal.forest);
+  g += `<g ${reg("forest")}>` + TREES.map(([x, y, rad]) => `<circle cx="${x}" cy="${y}" r="${view === "F" ? rad * .9 : rad}" fill="${pal.tree}"${view === "F" ? ` fill-opacity=".9"` : ""}/>`).join("") + `</g>`;
+  ["fieldA", "fieldB", "river", "burn", "rock1", "rock2", "city"].forEach(r => g += fillShape(r, pal[r]));
+  g += `<g ${reg("city")}>` + BLDGS.map(([x, y, w, h]) => `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${pal.bldg}"/>`).join("") + `</g>`;
+  if (view === "photo" || view === "D") g += `<g fill="${view === "photo" ? "#6f9a4f" : "#7fae5e"}" opacity=".5" pointer-events="none">` + [0,1,2,3,4].map(i => `<rect x="170" y="${20 + i * 12}" width="96" height="3"/><rect x="278" y="${20 + i * 12}" width="96" height="3"/>`).join("") + `</g>`;
+  if (opts.labels) g += `<g font-size="10" font-weight="bold" fill="#fff" stroke="#172033" stroke-width="2.5" paint-order="stroke" pointer-events="none">
+      <text x="40" y="104">Forest</text><text x="196" y="50">Field 1</text><text x="304" y="50">Field 2</text><text x="12" y="132">River</text>
+      <text x="34" y="214">Burn scar</text><text x="140" y="232">Rock 1</text><text x="200" y="245">Rock 2</text><text x="312" y="174">City</text><text x="186" y="112">Grassland</text></g>`;
+  let defs = "";
+  if (view === "E") {
+    defs += `<filter id="${id}n"><feTurbulence type="fractalNoise" baseFrequency=".85" numOctaves="2" seed="7"/><feColorMatrix type="saturate" values="0"/></filter>`;
+    g += `<rect width="400" height="250" filter="url(#${id}n)" opacity=".42" pointer-events="none"/>`;
+  }
+  let over = "";
+  const blockNight = night && V.night, blockCloud = cloud && V.cloud;
+  if (cloud) {
+    defs += `<filter id="${id}b"><feGaussianBlur stdDeviation="6"/></filter>`;
+    over += `<g filter="url(#${id}b)" fill="#fff" opacity="${blockCloud ? .97 : .28}" pointer-events="none">
+      <ellipse cx="80" cy="60" rx="110" ry="60"/><ellipse cx="250" cy="40" rx="130" ry="55"/><ellipse cx="360" cy="110" rx="90" ry="70"/>
+      <ellipse cx="170" cy="140" rx="140" ry="60"/><ellipse cx="60" cy="210" rx="100" ry="55"/><ellipse cx="300" cy="215" rx="130" ry="55"/></g>`;
+    if (view === "E") over += `<text x="200" y="20" text-anchor="middle" font-size="11" fill="#fff" stroke="#172033" stroke-width="2.5" paint-order="stroke" pointer-events="none">☁️ Clouds overhead, signal passes through</text>`;
+  }
+  if (blockNight) {
+    over += `<rect width="400" height="250" fill="#05070d" opacity=".96" pointer-events="none"/>`;
+    over += `<text x="200" y="118" text-anchor="middle" font-size="16" fill="#dfe4f5" pointer-events="none">🌙 No sunlight, no signal</text>
+      <text x="200" y="140" text-anchor="middle" font-size="11" fill="#8992a5" pointer-events="none">This sensor records reflected sunlight</text>`;
+  } else if (blockCloud) {
+    over += `<text x="200" y="122" text-anchor="middle" font-size="16" fill="#5d6678" pointer-events="none">☁️ Clouds block this sensor</text>
+      <text x="200" y="142" text-anchor="middle" font-size="11" fill="#8992a5" pointer-events="none">${view === "F" ? "Laser pulses bounce off the cloud tops" : view === "C" ? "Cloud tops are what it measures, not the ground" : "It only sees the top of the clouds"}</text>`;
+  } else if (night && view !== "photo") {
+    over += `<text x="394" y="244" text-anchor="end" font-size="11" fill="#fff" stroke="#172033" stroke-width="2.5" paint-order="stroke" pointer-events="none">🌙 night: still working</text>`;
+  }
+  return `<svg viewBox="0 0 400 250" role="img" aria-label="${opts.aria || "Landscape seen by " + V.sub}"><defs>${defs}</defs>${g}${over}</svg>`;
+}
+
+function curveSVG(r) {
+  const pts = CURVES[r], W = 300, H = 120, x0 = 26, y1 = 100;
+  const sx = w => x0 + (w - .4) / 2.1 * (W - x0 - 6), sy = v => y1 - v / .55 * 90;
+  const at = w => { for (let i = 1; i < pts.length; i++) if (w <= pts[i][0]) { const [a, b] = [pts[i - 1], pts[i]]; return a[1] + (b[1] - a[1]) * (w - a[0]) / (b[0] - a[0]); } return pts[pts.length - 1][1]; };
+  let d = "", dots = "";
+  for (let i = 0; i <= 210; i++) { const w = .4 + i * .01; d += (i ? "L" : "M") + sx(w).toFixed(1) + " " + sy(at(w)).toFixed(1); }
+  for (let i = 0; i <= 210; i += 3) { const w = .4 + i * .01; dots += `<circle cx="${sx(w).toFixed(1)}" cy="${sy(at(w)).toFixed(1)}" r="1.1"/>`; }
+  const ticks = [.5, 1, 1.5, 2, 2.5].map(w => `<text x="${sx(w)}" y="${H - 4}" font-size="8" fill="#8992a5" text-anchor="middle">${w}</text>`).join("");
+  return `<svg viewBox="0 0 ${W} ${H}" aria-label="Spectral curve for ${REGIONS[r]}">
+    <rect x="${sx(2.2) - 4}" y="8" width="8" height="${y1 - 8}" fill="#ffd166" opacity=".18"/>
+    <text x="${sx(2.2)}" y="7" font-size="7" fill="#ffd166" text-anchor="middle">2.2</text>
+    <path d="M${x0} 8 V${y1} H${W - 4}" stroke="#5d6678" fill="none"/>${ticks}
+    <text x="${W / 2 + 10}" y="${H}" font-size="7" fill="#8992a5" text-anchor="middle" dy="-12">wavelength (µm)</text>
+    <path d="${d}" stroke="#7fd1ae" stroke-width="1.8" fill="none"/><g fill="#ffd166">${dots}</g></svg>`;
+}
+
+/* =====================================================================
+   HUD
+   ===================================================================== */
+function renderHud() {
+  $("stages").innerHTML = STAGES.map((s, i) =>
+    `<button class="st${S.done[s.id] ? " done" : ""}" ${S.stage === s.id ? 'aria-current="step"' : ""} ${i < S.unlocked ? "" : "disabled"} onclick="go('${s.id}')">${s.icon} ${s.name}</button>`).join("");
+  $("xp").textContent = S.xp;
+}
+function render() {
+  renderHud();
+  ({ engage: renderEngage, explore: renderExplore, explain: renderExplain, elaborate: renderElaborate, evaluate: renderEvaluate })[S.stage]();
+}
+
+/* =====================================================================
+   1. ENGAGE
+   ===================================================================== */
+function renderEngage() {
+  const answered = PREDS.filter((_, i) => S.pred[i]).length;
+  $("stage").innerHTML = `
+    <header>
+      <div class="eyebrow">REMOTE SENSING • ENGAGE</div>
+      <h1>🌀 Mission: The Storm Tonight</h1>
+      <p class="subtitle">You are the newest analyst at a disaster response agency. A storm hits tonight and the team needs to see the river valley. Your satellite photo just arrived…</p>
+    </header>
+    <section class="panel">
+      <div class="grid2">
+        <figure class="fig">${scene("photo", { night: true, cloud: true, aria: "The normal satellite photo: black, nothing visible" })}
+          <figcaption><strong>Satellite photo, 2 a.m.</strong> Night and thick cloud. Nothing to see.</figcaption></figure>
+        <figure class="fig">${S.engageReveal ? scene("E", { night: true, cloud: true, labels: true, aria: "Another sensor's view: the river and city are visible" })
+          : `<div style="aspect-ratio:400/250;border-radius:14px;background:#e8ecf4;display:grid;place-items:center;text-align:center;color:#5d6678;padding:20px"><div><div style="font-size:40px">🛰️</div><p style="margin:8px 0 14px">A second sensor flew over at the same moment.</p><button class="btn" onclick="S.engageReveal=true;save();renderEngage()">Reveal its image</button></div></div>`}
+          <figcaption>${S.engageReveal ? "<strong>Mystery Sensor E, same place, same time.</strong> The river and city are clear, through cloud, in the dark." : "&nbsp;"}</figcaption></figure>
+      </div>
+      ${S.engageReveal ? `<p class="big-q" style="margin-top:22px">How can one satellite see nothing while another sees right through the storm?<br><span style="font-size:18px;color:#172033">👉 What determines what a sensor can detect?</span></p>` : ""}
+    </section>
+    ${S.engageReveal ? `
+    <section class="panel">
+      <h2>🧠 Make your predictions</h2>
+      <p class="sub">No grades here, just your best thinking. You'll come back to these at the end of the mission.</p>
+      ${PREDS.map((p, i) => `<div class="pred"><p>${i + 1}. ${p.s}</p><div class="seg3" role="group" aria-label="Prediction ${i + 1}">
+        ${["Agree", "Disagree", "Not sure"].map(o => `<button aria-pressed="${S.pred[i] === o}" onclick="setPred(${i},'${o}')">${o}</button>`).join("")}</div></div>`).join("")}
+    </section>
+    <section class="panel">
+      <h2>💬 Think–Pair–Share</h2>
+      <p class="sub">Write your first guess to the mission question, then compare with a partner: <em>What determines what a sensor can detect?</em></p>
+      <textarea id="guess" placeholder="My guess is…" oninput="S.guess=this.value;save()">${S.guess}</textarea>
+      <button class="btn wide" ${answered === PREDS.length ? "" : "disabled"} onclick="finishEngage()">Start the investigation →</button>
+      <p class="muted" style="text-align:center">${answered < PREDS.length ? `Answer all ${PREDS.length} predictions to continue (${answered}/${PREDS.length}).` : "Ready when you are."}</p>
+    </section>` : ""}`;
+}
+function setPred(i, o) {
+  const first = !S.pred[i]; S.pred[i] = o; save();
+  if (first) award(10, "for committing to a prediction");
+  renderEngage();
+}
+function finishEngage() { complete("engage"); go("explore"); }
+
+/* =====================================================================
+   2. EXPLORE
+   ===================================================================== */
+let lastProbe = null;
+function renderExplore() {
+  $("stage").innerHTML = `
+    <header>
+      <div class="eyebrow">REMOTE SENSING • EXPLORE</div>
+      <h1>🔎 The Mystery Sensor Lab</h1>
+      <p class="subtitle">Six unnamed sensors flew over the same valley. Switch between them, flip on night and clouds, and click surfaces to read the data. Solve each sensor's mission to earn a clue.</p>
+    </header>
+    <div class="lab">
+      <section class="panel">
+        <div class="viewbar" id="viewbar"></div>
+        <div class="scene" id="scene"></div>
+        <div class="toggles">
+          <button class="tg" id="tg-night" onclick="S.night=!S.night;save();updateLab()">🌙 Night</button>
+          <button class="tg" id="tg-cloud" onclick="S.cloud=!S.cloud;save();updateLab()">☁️ Clouds</button>
+          <span class="legend" id="legend"></span>
+        </div>
+        <div class="surfaces" aria-label="Or pick a surface">${Object.keys(REGIONS).map(r => `<button onclick="probe('${r}')">${REGIONS[r]}</button>`).join("")}</div>
+      </section>
+      <section>
+        <div class="panel" style="padding:20px">
+          <div id="mission"></div>
+          <div class="readout" id="readout" aria-live="polite">Click any surface on the map to read the sensor's data.</div>
+          <div class="notebook"><h3>📓 Clue notebook <span class="muted" id="cluecount"></span></h3><div id="clues"></div></div>
+        </div>
+      </section>
+    </div>
+    <section class="panel">
+      <h2>⚡ Sensor stress test</h2>
+      <p class="sub">Use the 🌙 and ☁️ switches to test every sensor. Which ones still work? This pattern is the key to the whole mission.</p>
+      <div class="tbl"><table class="stress" id="stress"></table></div>
+      <div id="stressfb"></div>
+    </section>
+    <div id="explorefinish"></div>`;
+  updateLab();
+}
+function updateLab() {
+  const v = S.view;
+  $("viewbar").innerHTML = Object.keys(VIEWS).map(k => `<button class="vbtn${S.clues[k] ? " solved" : ""}" aria-pressed="${v === k}" onclick="setView('${k}')">${VIEWS[k].label}<small>${VIEWS[k].sub}</small></button>`).join("");
+  $("scene").innerHTML = scene(v, { night: S.night, cloud: S.cloud, interactive: true, labels: v === "photo" });
+  $("tg-night").setAttribute("aria-pressed", S.night);
+  $("tg-cloud").setAttribute("aria-pressed", S.cloud);
+  $("legend").textContent = VIEWS[v].legend;
+  renderMission();
+  const n = Object.keys(S.clues).length;
+  $("cluecount").textContent = `${n}/6`;
+  $("clues").innerHTML = Object.keys(MISSIONS).map(k => `<div class="clue${S.clues[k] ? " got" : ""}"><strong>Sensor ${k}</strong><span>${S.clues[k] ? MISSIONS[k].clue : "🔒 Solve this sensor's mission to unlock."}</span></div>`).join("");
+  renderStress();
+  renderExploreFinish();
+}
+function setView(k) { S.view = k; lastProbe = null; save(); updateLab(); $("readout").innerHTML = "Click any surface on the map to read the sensor's data."; }
+function renderMission(msg, cls) {
+  const v = S.view;
+  if (v === "photo") {
+    $("mission").innerHTML = `<div class="mission"><h3>📷 Baseline photo</h3><p>Learn the landscape first. Then pick Sensor A to F above. Each has a mission.</p><div class="msg ${cls || ""}">${msg || ""}</div></div>`;
+    return;
+  }
+  const m = MISSIONS[v], solved = S.clues[v];
+  const choice = m.choice && !solved ? `<div class="row" style="justify-content:flex-start;margin-top:10px">${m.choice.map(r => `<button class="btn ghost" style="padding:8px 14px" onclick="answer('${r}')">${REGIONS[r]} has the dip</button>`).join("")}</div>` : "";
+  $("mission").innerHTML = `<div class="mission${solved ? " solved" : ""}"><h3>${solved ? "✅ Mission solved" : "🎯 Mission"}: Sensor ${v}</h3><p>${m.q}</p>${choice}
+    <div class="msg ${solved && !msg ? "good" : cls || ""}">${msg || (solved ? "Clue added to your notebook." : "")}</div></div>`;
+}
+function probe(r) {
+  const v = S.view, V = VIEWS[v], d = READ[r];
+  const blocked = (S.night && V.night) || (S.cloud && V.cloud);
+  let out;
+  if (blocked) out = `<b>${REGIONS[r]}</b><br>No data. ${S.night && V.night ? "No sunlight to reflect." : "The sensor only sees cloud."}`;
+  else if (v === "photo") out = `<b>${REGIONS[r]}</b><br>Looks like: ${d.look}`;
+  else if (v === "A") out = `<b>${REGIONS[r]}</b><br>Signal at ~0.85 µm: <b>${d.A}%</b> reflected`;
+  else if (v === "B") out = `<b>${REGIONS[r]}</b><br>Signal at ~1.6 µm: <b>${d.B}%</b> reflected`;
+  else if (v === "C") out = `<b>${REGIONS[r]}</b><br>Reading: <b>${S.night ? d.Cn : d.C} °C</b> ${S.night ? "(night)" : "(afternoon)"}`;
+  else if (v === "D") { out = `<b>${REGIONS[r]}</b>: ~200 narrow bands, 0.4–2.5 µm${curveSVG(r)}`; if (r === "rock1" || r === "rock2") { S.seenRock[r] = true; save(); } }
+  else if (v === "E") out = `<b>${REGIONS[r]}</b><br>Echo strength: <b>${d.E}</b>`;
+  else if (v === "F") out = `<b>${REGIONS[r]}</b><br>Pulse return time → height: <b>${d.F} m</b> above ground`;
+  $("readout").innerHTML = out;
+  lastProbe = r;
+  if (v !== "photo" && v !== "D") answer(r, blocked);
+}
+function answer(r, blocked) {
+  const v = S.view, m = MISSIONS[v];
+  if (!m || S.clues[v]) return;
+  if (m.need) {
+    const miss = [];
+    if (m.need.night && !S.night) miss.push("🌙 Night");
+    if (m.need.cloud && !S.cloud) miss.push("☁️ Clouds");
+    if (miss.length) return renderMission(`First switch on ${miss.join(" and ")}.`, "warn");
+  }
+  if (blocked) return renderMission("This sensor can't see right now. Turn off night or clouds.", "warn");
+  if (m.choice && !(S.seenRock.rock1 && S.seenRock.rock2)) return renderMission("Click both rocks on the map first to compare their curves.", "warn");
+  if (r === m.ans) {
+    S.clues[v] = true; save();
+    award(50, "clue found!");
+    updateLab();
+    renderMission("🎉 Correct! Clue added to your notebook.", "good");
+  } else {
+    renderMission((m.near && m.near[r]) || `Not ${REGIONS[r]}. Look again at the readouts and colours.`, "warn");
+  }
+}
+function renderStress() {
+  const keys = Object.keys(STRESS), chk = S.stressChecked;
+  const cell = (k, j) => {
+    const val = S.stress[k + j], cls = chk ? (val === STRESS[k][j] ? " right" : " wrong") : "";
+    return `<span class="yn${cls}" role="group">${[true, false].map(b => `<button aria-pressed="${val === b}" ${chk ? "disabled" : ""} onclick="S.stress['${k}${j}']=${b};save();renderStress()">${b ? "Yes" : "No"}</button>`).join("")}</span>`;
+  };
+  $("stress").innerHTML = `<thead><tr><th>Sensor</th><th>🌙 Works at night?</th><th>☁️ Sees through clouds?</th></tr></thead><tbody>` +
+    keys.map(k => `<tr><td><strong>Sensor ${k}</strong></td><td>${cell(k, 0)}</td><td>${cell(k, 1)}</td></tr>`).join("") + `</tbody>`;
+  const filled = keys.every(k => S.stress[k + 0] !== undefined && S.stress[k + 1] !== undefined);
+  if (!chk) {
+    $("stressfb").innerHTML = `<button class="btn wide" ${filled ? "" : "disabled"} onclick="checkStress()">Check my stress test</button>`;
+  } else {
+    const ok = keys.reduce((n, k) => n + (S.stress[k + 0] === STRESS[k][0]) + (S.stress[k + 1] === STRESS[k][1]), 0);
+    $("stressfb").innerHTML = `<div class="feedback${ok === 12 ? "" : " partial"}"><h3>${ok}/12 correct</h3>
+      <p>Only Sensors <strong>C, E and F</strong> work at night, and only <strong>E</strong> sees through clouds. Sensors A, B and D need sunlight; C, E and F don't. Hold on to that pattern: it's coming back in Explain.</p></div>`;
+  }
+}
+function checkStress() {
+  S.stressChecked = true;
+  const ok = Object.keys(STRESS).reduce((n, k) => n + (S.stress[k + 0] === STRESS[k][0]) + (S.stress[k + 1] === STRESS[k][1]), 0);
+  save(); award(ok * 10, `stress test ${ok}/12`); renderStress(); renderExploreFinish();
+}
+function renderExploreFinish() {
+  const n = Object.keys(S.clues).length, ready = n === 6 && S.stressChecked;
+  $("explorefinish").innerHTML = ready ? `<section class="panel finish"><div class="fi">🗂️</div><h2>Investigation complete</h2>
+    <p class="muted">You have six clues and a stress-test pattern. Time to find out what these sensors really are.</p>
+    <button class="btn wide" onclick="complete('explore');go('explain')">Unmask the sensors →</button></section>`
+    : `<p class="muted" style="text-align:center">Progress: ${n}/6 clues · stress test ${S.stressChecked ? "✓" : "not checked"}</p>`;
+}
+
+/* =====================================================================
+   3. EXPLAIN
+   ===================================================================== */
+function renderExplain() {
+  const k = S.explainCur, t = MYSTERY[k], open = S.unmasked[k], n = Object.keys(S.unmasked).length;
+  const I = INFO[t];
+  $("stage").innerHTML = `
+    <header>
+      <div class="eyebrow">REMOTE SENSING • EXPLAIN</div>
+      <h1>💡 Unmask the Sensors</h1>
+      <p class="subtitle">Use your clue notebook to name each mystery sensor. Each correct name unlocks its full case file.</p>
+    </header>
+    <section class="bridge"><span>🔑</span><div><strong>The answer to our mission question</strong>
+      <p>What a sensor detects depends on <strong>which energy it measures</strong> (reflected sunlight, emitted heat, microwaves, laser pulses) and <strong>how surfaces respond to that energy</strong>.
+      <strong>Passive</strong> sensors record energy that is already there (sunlight or heat), so sunlight-based ones fail at night. <strong>Active</strong> sensors send their own energy, which is why Sensors E and F worked in the dark.</p></div></section>
+    <div class="cases">${Object.keys(MYSTERY).map(c => `<button class="case${S.unmasked[c] ? " open" : ""}" aria-pressed="${c === k}" onclick="S.explainCur='${c}';save();renderExplain()">
+      <span class="ic">${S.unmasked[c] ? TYPES[MYSTERY[c]].icon : "❓"}</span><span class="nm">${S.unmasked[c] ? TYPES[MYSTERY[c]].name : "Sensor " + c}</span></button>`).join("")}</div>
+    <section class="panel spectrum"><h3>Where does this energy sit? (not to scale)</h3>
+      <div class="strip">${BANDS.map((b, i) => `<div class="seg${i === 4 ? " wide" : ""}${open && I.on.includes(i) ? " on" : ""}">${b}<small>${BAND_SUB[i]}</small></div>`).join("")}</div>
+      <p class="strip-note">${open ? I.note : "Name this sensor to light up its part of the spectrum."}</p></section>
+    <section class="panel">
+      <h2>${open ? `${TYPES[t].icon} Sensor ${k} is ${TYPES[t].name} <span class="pa${I.active ? " active" : ""}">${I.active ? "ACTIVE" : "PASSIVE"}</span>` : `❓ Who is Sensor ${k}?`}</h2>
+      <p class="sub">${open ? TYPES[t].full : "Your clue: " + (S.clues[k] ? MISSIONS[k].clue : "(you skipped this mission, so use what you know)")}</p>
+      ${open ? `
+        <div class="facts">
+          <div class="fact span"><h3>WHAT IT IS</h3><p>${I.what}</p></div>
+          <div class="fact"><h3>ENERGY AND WAVELENGTH</h3><p>${I.energy}<br><em>${I.mode}</em></p></div>
+          <div class="fact"><h3>WHAT IT DETECTS</h3><p>${I.detects}</p></div>
+          <div class="fact"><h3>APPLICATIONS</h3><div class="tags">${I.uses.map(u => `<span>${u}</span>`).join("")}</div></div>
+          <div class="fact"><h3>EXAMPLE SENSORS</h3><div class="tags">${I.platforms.map(u => `<span>${u}</span>`).join("")}</div></div>
+          <div class="fact span limit"><h3>⚠️ LIMITATIONS</h3><p>${I.limit}</p></div>
+        </div>
+        <div class="say"><strong>Explain it to a partner:</strong> use your Explore evidence to say <em>why</em> Sensor ${k} behaved the way it did.</div>`
+      : `<div class="chips">${TKEYS.map(x => {
+          const tried = (S.tries[k] || []).includes(x);
+          return `<button class="chip${tried ? " wrong" : ""}" ${tried ? "disabled" : ""} onclick="guessType('${x}')"><span class="ic">${TYPES[x].icon}</span><span class="nm">${TYPES[x].name}</span></button>`; }).join("")}</div>
+        <div class="msg warn" id="exmsg">${(S.tries[k] || []).length ? "Not quite. Reread the clue and think about which energy would behave that way." : ""}</div>`}
+    </section>
+    <p class="muted" style="text-align:center">${n}/6 sensors unmasked</p>
+    ${n === 6 ? `<section class="panel"><h2>🎉 All six case files</h2><p class="sub">Everything side by side. Notice that the energy a sensor uses decides both what it can tell you and where it fails.</p>
+      <div class="tbl"><table class="sum"><thead><tr><th>Type</th><th>Energy</th><th>Passive / active</th><th>Best for</th><th>Example</th><th>Main limitation</th></tr></thead><tbody>
+      ${TKEYS.map(x => `<tr><td><strong>${tname(x)}</strong></td><td>${INFO[x].energy}</td><td>${INFO[x].active ? "Active" : "Passive"}</td><td>${INFO[x].uses.slice(0, 3).join(", ")}</td><td>${INFO[x].platforms.slice(0, 2).join(", ")}</td><td>${INFO[x].limit.split(". ")[0].replace(/\.$/, "")}.</td></tr>`).join("")}
+      </tbody></table></div>
+      <button class="btn wide" onclick="complete('explain');go('elaborate')">Take on real missions →</button></section>` : ""}`;
+}
+function guessType(x) {
+  const k = S.explainCur;
+  if (MYSTERY[k] === x) {
+    const tries = (S.tries[k] || []).length;
+    S.unmasked[k] = true; save();
+    award(tries ? 20 : 40, tries ? "unmasked!" : "unmasked on the first try!");
+    renderExplain();
+  } else {
+    S.tries[k] = [...(S.tries[k] || []), x]; save(); renderExplain();
+  }
+}
+
+/* =====================================================================
+   4. ELABORATE
+   ===================================================================== */
+let elabPicks = [];
+function renderElaborate() {
+  const i = S.elabCur, s = SCENARIOS[i], res = S.elab[i];
+  const picks = res ? res.picks : elabPicks;
+  const nDone = Object.keys(S.elab).length;
+  const chips = TKEYS.map(k => {
+    const on = picks.includes(k);
+    let cls = "chip";
+    if (res) { const right = s.ans.includes(k); if (on && right) cls += " right"; else if (on) cls += " wrong"; else if (right) cls += " missed"; }
+    return `<button class="${cls}" aria-pressed="${on}" ${res ? "disabled" : ""} onclick="toggleElab('${k}')"><span class="ic">${TYPES[k].icon}</span><span class="nm">${TYPES[k].name}</span></button>`;
+  }).join("");
+  const exact = res && sameSet(res.picks, s.ans);
+  $("stage").innerHTML = `
+    <header>
+      <div class="eyebrow">REMOTE SENSING • ELABORATE</div>
+      <h1>🧭 Mission Dispatch</h1>
+      <p class="subtitle">Real requests are coming in. Dispatch the right imagery. Some missions need two types working together. Discuss with your group before you send it.</p>
+    </header>
+    <div class="dots">${SCENARIOS.map((_, j) => `<button class="dot${j === i ? " cur" : ""}${S.elab[j] ? " done" : ""}" aria-label="Mission ${j + 1}" onclick="S.elabCur=${j};elabPicks=[];save();renderElaborate()">${j + 1}</button>`).join("")}</div>
+    <section class="panel">
+      <div class="place"><div class="bigic">${s.icon}</div><div><small>MISSION ${i + 1} OF ${SCENARIOS.length} · ${s.ans.length > 1 ? "may need more than one" : "choose wisely"}</small><h2>${s.title}</h2></div></div>
+      <p class="scenario">${s.text}</p>
+      <div class="chips">${chips}</div>
+      ${res ? `<div class="feedback${exact ? "" : " partial"}"><h3>${exact ? "✅ Perfect dispatch: " : "🤔 Best answer: "}${s.ans.map(tname).join(" + ")}</h3><p>${s.why}</p><p class="muted">${s.trap}</p></div>
+        ${i < SCENARIOS.length - 1 ? `<button class="btn wide" onclick="S.elabCur=${i + 1};elabPicks=[];save();renderElaborate()">Next mission →</button>` : ""}`
+      : `<button class="btn wide" ${elabPicks.length ? "" : "disabled"} onclick="dispatch()">🚀 Dispatch</button>`}
+    </section>
+    <p class="muted" style="text-align:center">${nDone}/${SCENARIOS.length} missions completed</p>
+    ${nDone === SCENARIOS.length ? `<section class="panel finish"><div class="fi">🏅</div><h2>All missions dispatched</h2>
+      <p class="muted">The best choice always came from the question being asked, not from a memorised list.</p>
+      <button class="btn wide" onclick="complete('elaborate');go('evaluate')">Final evaluation →</button></section>` : ""}`;
+}
+function toggleElab(k) { elabPicks = elabPicks.includes(k) ? elabPicks.filter(p => p !== k) : [...elabPicks, k]; renderElaborate(); }
+function dispatch() {
+  const s = SCENARIOS[S.elabCur];
+  const exact = sameSet(elabPicks, s.ans), partial = !exact && elabPicks.some(p => s.ans.includes(p));
+  S.elab[S.elabCur] = { picks: elabPicks.slice(), exact };
+  elabPicks = []; save();
+  if (exact) award(100, "perfect dispatch"); else if (partial) award(40, "partly right"); else toast("No XP this time. Read why below.");
+  renderElaborate();
+}
+
+/* =====================================================================
+   5. EVALUATE
+   ===================================================================== */
+const EV_TOTAL = QUIZ.length + 3;
+function renderEvaluate() {
+  const E = S.ev;
+  let body;
+  if (E.step < QUIZ.length) {
+    const item = QUIZ[E.step], picked = E.picks[E.step], done = picked !== undefined && picked !== null;
+    body = `<div class="step">QUESTION ${E.step + 1} OF ${QUIZ.length}</div><p class="q">${item.q}</p>
+      <div class="opts">${item.o.map((t, i) => `<button class="opt${done ? (i === item.a ? " right" : i === picked ? " wrong" : "") : ""}" ${done ? "disabled" : ""} onclick="evPick(${i})"><b>${"ABCD"[i]}</b>${t}</button>`).join("")}</div>
+      ${done ? `<div class="feedback${picked === item.a ? "" : " bad"}"><strong>${picked === item.a ? "✅ Correct." : "Not quite."}</strong> ${item.why}</div>
+        <button class="btn wide" onclick="S.ev.step++;save();renderEvaluate()">${E.step === QUIZ.length - 1 ? "Continue →" : "Next question →"}</button>` : ""}`;
+  } else if (E.step === QUIZ.length) {
+    body = `<div class="step">EXPLAIN YOUR THINKING</div>
+      <p class="q">A classmate says: <em>“Radar is just a camera that works at night.”</em> Correct or improve this statement using what you learned.</p>
+      <textarea id="evtxt" placeholder="Write your answer here…" oninput="S.ev.text=this.value;save();const b=document.getElementById('evgo');if(b)b.disabled=this.value.trim().length<20">${E.text}</textarea>
+      ${E.reveal ? `<div class="feedback"><strong>Compare with this:</strong> ${MODEL}<p class="muted">Check yourself: did you mention <em>active</em>, <em>through clouds</em>, and that it measures <em>structure, not colour</em>?</p></div>
+        <button class="btn wide" onclick="S.ev.step++;save();renderEvaluate()">Continue →</button>`
+      : `<button class="btn wide" id="evgo" ${E.text.trim().length < 20 ? "disabled" : ""} onclick="S.ev.reveal=true;if(!S.explainedXp){S.explainedXp=true;award(50,'for explaining')}renderEvaluate()">Compare my answer</button>`}`;
+  } else if (E.step === QUIZ.length + 1) {
+    const all = PREDS.every((_, i) => E.pred2[i]);
+    body = `<div class="step">THEN VS NOW</div>
+      <p class="q">Remember your predictions from the start of the mission? Answer them again, then see how your thinking changed.</p>
+      ${PREDS.map((p, i) => `<div class="pred"><p>${i + 1}. ${p.s}</p><div class="seg3">${["Agree", "Disagree", "Not sure"].map(o => `<button aria-pressed="${E.pred2[i] === o}" onclick="S.ev.pred2[${i}]='${o}';save();renderEvaluate()">${o}</button>`).join("")}</div></div>`).join("")}
+      ${all ? `<div class="tbl" style="margin-top:16px"><table class="tv"><thead><tr><th>Statement</th><th>Then</th><th>Now</th><th>Evidence</th></tr></thead><tbody>
+        ${PREDS.map((p, i) => `<tr><td>${p.s}</td><td>${S.pred[i] || "–"}</td><td>${E.pred2[i] === p.truth ? "✅" : "🤔"} ${E.pred2[i]}</td><td><strong>${p.truth}.</strong> ${p.why}</td></tr>`).join("")}
+        </tbody></table></div>
+        ${S.guess.trim() ? `<div class="say"><strong>Your first guess to the mission question was:</strong> “${S.guess.replace(/</g, "&lt;")}”<br>How would you answer it now?</div>` : ""}
+        <button class="btn wide" onclick="S.ev.step++;save();renderEvaluate()">Continue →</button>` : ""}`;
+  } else if (E.step === QUIZ.length + 2) {
+    body = `<div class="step">SELF-ASSESSMENT</div>
+      <p class="q">“I can choose an imagery type for a real problem and explain why, including its limitations.”</p>
+      <div class="scale">${[1, 2, 3, 4, 5].map(n => `<button aria-pressed="${E.rating === n}" onclick="S.ev.rating=${n};save();renderEvaluate()">${n}</button>`).join("")}</div>
+      <div class="ends"><span>Not yet</span><span>Very confident</span></div>
+      <p class="q" style="font-size:17px">Your name for the certificate (optional)</p>
+      <input type="text" value="${E.name.replace(/"/g, "&quot;")}" placeholder="Name" oninput="S.ev.name=this.value;save()">
+      <p class="muted">This name also appears on the class leaderboard.</p>
+      <button class="btn wide" ${E.rating ? "" : "disabled"} onclick="S.ev.step++;complete('evaluate');renderEvaluate()">See my results 🏆</button>`;
+  } else {
+    body = results();
+  }
+  $("stage").innerHTML = `
+    <header>
+      <div class="eyebrow">REMOTE SENSING • EVALUATE</div>
+      <h1>🏆 Final Case Review</h1>
+      <p class="subtitle">Show what you understand, explain your thinking, and see how far your ideas have come since the storm.</p>
+    </header>
+    <div class="bar"><div style="width:${Math.min(E.step / EV_TOTAL, 1) * 100}%"></div></div>
+    <section class="panel">${body}</section>`;
+  if (E.step > QUIZ.length + 2 && !E.sent && window.Scores && Scores.enabled) {
+    E.sent = true; save();
+    const score = QUIZ.filter((q, i) => E.picks[i] === q.a).length;
+    Scores.submit("detective", S.xp, `quiz ${score}/${QUIZ.length}`, E.name).then(ok => {
+      const el = document.getElementById("sent"); if (el) el.textContent = ok ? "✅ Your XP was sent to the class leaderboard." : "⚠️ Couldn't reach the leaderboard. Show your teacher this screen.";
+    });
+  }
+}
+function evPick(i) {
+  const E = S.ev; E.picks[E.step] = i; save();
+  if (i === QUIZ[E.step].a && !S.quizXp[E.step]) { S.quizXp[E.step] = true; award(60, "correct!"); }
+  renderEvaluate();
+}
+function results() {
+  const E = S.ev, score = QUIZ.filter((q, i) => E.picks[i] === q.a).length;
+  const missed = QUIZ.filter((q, i) => E.picks[i] !== q.a).map(q => q.topic);
+  const ranks = [[1700, "🛰️", "Chief Sensor Scientist"], [1200, "🥇", "Senior Analyst"], [600, "🥈", "Field Analyst"], [0, "🥉", "Trainee Analyst"]];
+  const [, medal, rank] = ranks.find(r => S.xp >= r[0]);
+  const badges = [
+    ["🎯 Bold Predictor", S.done.engage], ["🔎 Clue Hunter", Object.keys(S.clues).length === 6],
+    ["⚡ Stress Tester", S.stressChecked], ["💡 Unmasker", Object.keys(S.unmasked).length === 6],
+    ["🧭 Dispatcher", Object.keys(S.elab).length === SCENARIOS.length], ["🏆 Quiz Ace", score >= QUIZ.length - 1]
+  ];
+  const esc = E.name.replace(/</g, "&lt;");
+  return `<div class="cert">
+      <div class="medal">${medal}</div>
+      <div class="step">${esc ? "THIS CERTIFIES THAT " + esc.toUpperCase() + " HAS EARNED THE RANK OF" : "YOUR RANK"}</div>
+      <h2>${rank}</h2>
+      <div class="score">${S.xp} XP</div>
+      <p class="muted">Quiz: <strong>${score}/${QUIZ.length}</strong> · Confidence: <strong>${E.rating}/5</strong></p>
+      <div class="badges">${badges.map(([b, on]) => `<span class="badge${on ? "" : " off"}">${b}</span>`).join("")}</div>
+      <ul class="rev">${QUIZ.map((q, i) => `<li>${E.picks[i] === q.a ? "✅" : "❌"} ${q.topic}</li>`).join("")}</ul>
+      ${missed.length ? `<div class="say" style="text-align:left;max-width:560px;margin:16px auto 0"><strong>Review next:</strong> ${missed.join(", ")}. Revisit those case files in Explain.</div>` : `<p class="muted">Perfect quiz. You can match imagery to real problems and explain why.</p>`}
+    </div>
+    <p class="muted" id="sent" style="text-align:center"></p>
+    <div class="row">
+      <button class="btn ghost" onclick="window.print()">🖨️ Print certificate</button>
+      <button class="btn ghost" onclick="go('explain')">Review case files</button>
+      <button class="btn ghost" onclick="S.ev=fresh().ev;save();renderEvaluate()">Retake evaluation</button>
+    </div>`;
+}
+
+render();
+</script>
+<script src="scores.js"></script>
