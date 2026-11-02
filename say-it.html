@@ -78,7 +78,7 @@ button:focus-visible, a:focus-visible { outline: 3px solid #172033; outline-offs
       <li>A word appears with some red <b>"don't say"</b> words. The explainer can't say any of them.</li>
       <li>The guesser guesses out loud. When they say the word, the explainer taps <b>✓ They got it</b>.</li>
       <li>Too hard? Tap <b>Skip</b> for a new word.</li>
-      <li>Your score is how many words your partner guessed before time runs out. Then swap roles.</li>
+      <li>Keep going as long as you like (or pick a timer). Tap <b>End round</b> to see your score, then swap roles.</li>
     </ol>
     <p class="hint" style="margin:-6px 0 16px">Only tap ✓ when your partner really says the word. The game can't hear them, so it trusts you!</p>
     <div class="row" id="timeRow"><span>Round length</span></div>
@@ -109,7 +109,7 @@ button:focus-visible, a:focus-visible { outline: 3px solid #172033; outline-offs
       <button class="big pass" id="pass">Skip ⏭</button>
       <button class="big got" id="got">✓ They got it</button>
     </div>
-    <button class="stop" id="stopBtn">End round early</button>
+    <button class="big pass" id="stopBtn" style="margin-top:12px">⏹ End round</button>
   </section>
 
   <section class="panel score hidden" id="done">
@@ -159,8 +159,8 @@ const TERMS = [
   ["RESOLUTION", "🔍", "use", ["pixel", "size", "detail"], "The ground size of one pixel."],
   ["ISLAND", "🏙️", "use", ["heat", "city", "urban"], "Urban heat island: cities hotter than the countryside."]
 ];
-const TIMES = [[60, "1 min"], [90, "1½ min"], [120, "2 min"]];
-let round = 1, secs = 90, grp = "all", deck = [], i = 0, score = 0, log = [], left = 0, tick = null;
+const TIMES = [[0, "♾️ Unlimited"], [60, "1 min"], [90, "1½ min"], [120, "2 min"]];
+let round = 1, secs = 0, grp = "all", deck = [], i = 0, score = 0, log = [], left = 0, tick = null;
 const $ = id => document.getElementById(id);
 
 function pills(row, items, get, set) {
@@ -191,7 +191,7 @@ function next(ok) {
   if (ok) score++;
   $("count").textContent = "Guessed: " + score;
   i++;
-  if (i >= deck.length) { end(true); return; }
+  if (i >= deck.length) { deck = shuffle(deck.slice()); i = 0; }
   draw();
   // short pause so a fast double tap can't count twice
   $("got").disabled = $("pass").disabled = true;
@@ -210,9 +210,10 @@ function countdown() {
 }
 function start() {
   deck = shuffle(TERMS.filter(t => grp === "all" || t[2] === grp)); i = 0; score = 0; log = []; left = secs;
-  $("count").textContent = "Guessed: 0"; $("timer").textContent = fmt(left); $("timer").classList.remove("low");
+  $("count").textContent = "Guessed: 0"; $("timer").textContent = secs ? fmt(left) : "♾️ No timer"; $("timer").classList.remove("low");
   show("play"); draw(); $("got").focus();
   clearInterval(tick);
+  if (!secs) return;
   tick = setInterval(() => {
     left--; $("timer").textContent = fmt(Math.max(left, 0)); $("timer").classList.toggle("low", left <= 10);
     if (left <= 0) end();
