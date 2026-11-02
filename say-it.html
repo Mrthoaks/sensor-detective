@@ -42,6 +42,20 @@ button:focus-visible, a:focus-visible { outline: 3px solid #172033; outline-offs
 .list li.miss { background: #fdf0ee; }
 .list li small { display: block; color: #5d6678; margin-top: 3px; line-height: 1.4; }
 .hidden { display: none; }
+.roles { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+.role { border-radius: 14px; padding: 14px; text-align: center; line-height: 1.45; font-size: 15px; }
+.role .e { font-size: 34px; }
+.role b { display: block; font-size: 17px; margin: 4px 0; }
+.r1 { background: #eef1fa; } .r2 { background: #eaf6ef; }
+.who { background: #172033; color: white; border-radius: 12px; padding: 10px 14px; text-align: center; font-weight: bold; margin-bottom: 10px; line-height: 1.4; }
+.who small { display: block; font-weight: normal; opacity: .8; }
+.hand { text-align: center; }
+.hand .e { font-size: 64px; }
+.hand h2 { margin: 8px 0; }
+.hand p { color: #5d6678; line-height: 1.55; }
+.cd { font-size: 96px; font-weight: bold; color: #6577b8; text-align: center; padding: 40px 0; }
+.stop { background: none; border: 0; color: #5d6678; text-decoration: underline; font: 14px Arial; cursor: pointer; display: block; margin: 14px auto 0; }
+.big:disabled { opacity: .5; }
 @media (max-width: 420px) { .term .w { font-size: 30px; } h1 { font-size: 26px; } }
 </style>
 </head>
@@ -55,19 +69,35 @@ button:focus-visible, a:focus-visible { outline: 3px solid #172033; outline-offs
   </header>
 
   <section class="panel" id="setup">
+    <h2 style="margin:0 0 12px;font-size:20px">How to play (with a partner)</h2>
+    <div class="roles">
+      <div class="role r1"><div class="e">🗣️</div><b>Explainer</b>Holds the phone and sees the word. Describes it <u>without</u> saying it.</div>
+      <div class="role r2"><div class="e">🤔</div><b>Guesser</b>Can't see the screen. Listens and shouts out guesses.</div>
+    </div>
     <ol class="steps">
-      <li><b>Explainer</b> holds the phone. Only they look at the screen.</li>
-      <li>Describe the word to your <b>guesser</b> without saying the word or the red "don't say" words. The Term Clinic comparisons help: "it's like TV static…"</li>
-      <li>Tap <b>Got it</b> when they guess right, or <b>Pass</b> to skip.</li>
-      <li>When time runs out, swap roles and play again.</li>
+      <li>A word appears with some red <b>"don't say"</b> words. The explainer can't say any of them.</li>
+      <li>The guesser guesses out loud. When they say the word, the explainer taps <b>✓ They got it</b>.</li>
+      <li>Too hard? Tap <b>Skip</b> for a new word.</li>
+      <li>Your score is how many words your partner guessed before time runs out. Then swap roles.</li>
     </ol>
+    <p class="hint" style="margin:-6px 0 16px">Only tap ✓ when your partner really says the word. The game can't hear them, so it trusts you!</p>
     <div class="row" id="timeRow"><span>Round length</span></div>
     <div class="row" id="grpRow"><span>Words from</span></div>
-    <button class="big" id="start">Start round</button>
+    <button class="big" id="start">Next: pick who explains →</button>
   </section>
 
+  <section class="panel hand hidden" id="handoff">
+    <div class="e">📱</div>
+    <h2 id="handTitle">Round 1</h2>
+    <p id="handTxt"><b>Explainer:</b> hold the phone so only you can see it.<br><b>Guesser:</b> don't look at the screen!</p>
+    <button class="big" id="go">I'm the explainer. Start the timer</button>
+  </section>
+
+  <section class="panel hidden" id="count3"><div class="cd" id="cd">3</div></section>
+
   <section class="hidden" id="play">
-    <div class="top"><span id="count">Score 0</span><span class="timer" id="timer">1:30</span></div>
+    <div class="who">🗣️ EXPLAINER: describe this word<small>Guesser: say your guesses out loud</small></div>
+    <div class="top"><span id="count">Guessed: 0</span><span class="timer" id="timer">1:30</span></div>
     <div class="panel term" id="card">
       <div class="grp" id="grp"></div>
       <div class="ic" id="ic"></div>
@@ -76,17 +106,19 @@ button:focus-visible, a:focus-visible { outline: 3px solid #172033; outline-offs
       <div class="hint" id="hint"></div>
     </div>
     <div class="btns">
-      <button class="big pass" id="pass">Pass →</button>
-      <button class="big got" id="got">Got it ✓</button>
+      <button class="big pass" id="pass">Skip ⏭</button>
+      <button class="big got" id="got">✓ They got it</button>
     </div>
+    <button class="stop" id="stopBtn">End round early</button>
   </section>
 
   <section class="panel score hidden" id="done">
-    <div>Time's up! Your team explained</div>
+    <div id="doneHead">Time's up! Your partner guessed</div>
     <div class="n" id="final">0</div>
     <div id="finalTxt"></div>
     <ul class="list" id="list"></ul>
-    <button class="big" id="again">Swap roles and play again</button>
+    <button class="big" id="again">🔄 Swap roles: guesser now explains</button>
+    <button class="stop" id="home">Change settings</button>
     <p style="margin-top:14px"><a class="back" href="term-clinic.html">Review the words in the Term Clinic →</a></p>
   </section>
 </div>
@@ -128,7 +160,7 @@ const TERMS = [
   ["ISLAND", "🏙️", "use", ["heat", "city", "urban"], "Urban heat island: cities hotter than the countryside."]
 ];
 const TIMES = [[60, "1 min"], [90, "1½ min"], [120, "2 min"]];
-let secs = 90, grp = "all", deck = [], i = 0, score = 0, log = [], left = 0, tick = null;
+let round = 1, secs = 90, grp = "all", deck = [], i = 0, score = 0, log = [], left = 0, tick = null;
 const $ = id => document.getElementById(id);
 
 function pills(row, items, get, set) {
@@ -143,12 +175,11 @@ function pills(row, items, get, set) {
 pills($("timeRow"), TIMES, () => secs, v => secs = v);
 pills($("grpRow"), [["all", "All 26"], ...Object.entries(GROUPS).map(([k, g]) => [k, g.name])], () => grp, v => grp = v);
 
-function show(id) { ["setup", "play", "done"].forEach(s => $(s).classList.toggle("hidden", s !== id)); }
+function show(id) { ["setup", "handoff", "count3", "play", "done"].forEach(s => $(s).classList.toggle("hidden", s !== id)); }
 function fmt(s) { return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); }
 function shuffle(a) { for (let k = a.length - 1; k > 0; k--) { const j = Math.floor(Math.random() * (k + 1)); [a[k], a[j]] = [a[j], a[k]]; } return a; }
 
 function draw() {
-  if (i >= deck.length) { deck = shuffle(deck.slice()); i = 0; }
   const [t, ic, g, taboo] = deck[i], G = GROUPS[g];
   $("card").style.setProperty("--c", G.color);
   $("grp").textContent = G.name; $("ic").textContent = ic; $("word").textContent = t;
@@ -158,12 +189,28 @@ function draw() {
 function next(ok) {
   log.push([deck[i], ok]);
   if (ok) score++;
-  $("count").textContent = "Score " + score;
-  i++; draw();
+  $("count").textContent = "Guessed: " + score;
+  i++;
+  if (i >= deck.length) { end(true); return; }
+  draw();
+  // short pause so a fast double tap can't count twice
+  $("got").disabled = $("pass").disabled = true;
+  setTimeout(() => { $("got").disabled = $("pass").disabled = false; }, 700);
+}
+function handoff() {
+  $("handTitle").textContent = "Round " + round;
+  $("handTxt").innerHTML = round === 1
+    ? "<b>Explainer:</b> hold the phone so only you can see it.<br><b>Guesser:</b> don't look at the screen!"
+    : "Swap! The <b>old guesser</b> takes the phone and explains now.<br>The old explainer guesses. No peeking!";
+  show("handoff");
+}
+function countdown() {
+  let n = 3; $("cd").textContent = n; show("count3");
+  const t = setInterval(() => { n--; if (n <= 0) { clearInterval(t); start(); } else $("cd").textContent = n; }, 800);
 }
 function start() {
   deck = shuffle(TERMS.filter(t => grp === "all" || t[2] === grp)); i = 0; score = 0; log = []; left = secs;
-  $("count").textContent = "Score 0"; $("timer").textContent = fmt(left); $("timer").classList.remove("low");
+  $("count").textContent = "Guessed: 0"; $("timer").textContent = fmt(left); $("timer").classList.remove("low");
   show("play"); draw(); $("got").focus();
   clearInterval(tick);
   tick = setInterval(() => {
@@ -171,15 +218,19 @@ function start() {
     if (left <= 0) end();
   }, 1000);
 }
-function end() {
+function end(allDone) {
   clearInterval(tick);
+  $("doneHead").textContent = allDone === true ? "You used every word! Your partner guessed" : allDone === false ? "Round over! Your partner guessed" : "Time's up! Your partner guessed";
   $("final").textContent = score;
   $("finalTxt").textContent = score === 1 ? "word" : "words";
   $("list").innerHTML = log.map(([t, ok]) => `<li class="${ok ? "" : "miss"}">${ok ? "✅" : "⏭️"} <b>${t[0]}</b><small>${t[4]}</small></li>`).join("") || "<li>No words this round.</li>";
   show("done");
 }
-$("start").onclick = start;
-$("again").onclick = start;
+$("start").onclick = () => { round = 1; handoff(); };
+$("go").onclick = countdown;
+$("again").onclick = () => { round++; handoff(); };
+$("home").onclick = () => show("setup");
+$("stopBtn").onclick = () => end(false);
 $("got").onclick = () => next(true);
 $("pass").onclick = () => next(false);
 </script>
