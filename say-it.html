@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Say It Another Way</title>
+<style>
+* { box-sizing: border-box; }
+body { margin: 0; font-family: Arial, Helvetica, sans-serif; background: #f4f7fb; color: #172033; }
+.app { max-width: 620px; margin: auto; padding: 28px 16px 50px; }
+.back { display: inline-block; margin-bottom: 14px; color: #5268a5; font-weight: bold; text-decoration: none; }
+header { text-align: center; margin-bottom: 18px; }
+.eyebrow { font-size: 13px; font-weight: 700; letter-spacing: 2px; color: #5268a5; margin-bottom: 8px; }
+h1 { font-size: 32px; margin: 0 0 8px; }
+.subtitle { line-height: 1.55; color: #5d6678; font-size: 16px; margin: 0; }
+.panel { background: white; border-radius: 18px; padding: 22px; box-shadow: 0 6px 20px rgba(0,0,0,.06); }
+.steps { margin: 0 0 18px; padding-left: 20px; line-height: 1.6; }
+.row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+.row span { font-weight: bold; width: 100%; font-size: 14px; }
+.opt { border: 2px solid #dfe4ed; background: white; border-radius: 999px; padding: 8px 14px; font: bold 14px Arial; cursor: pointer; color: #172033; }
+.opt[aria-pressed="true"] { background: #6577b8; border-color: #6577b8; color: white; }
+.big { width: 100%; border: 0; border-radius: 14px; padding: 16px; font: bold 18px Arial; cursor: pointer; background: #6577b8; color: white; }
+button:focus-visible, a:focus-visible { outline: 3px solid #172033; outline-offset: 2px; }
+.top { display: flex; justify-content: space-between; align-items: center; font-weight: bold; margin-bottom: 12px; }
+.timer { font-size: 26px; color: #5268a5; }
+.timer.low { color: #d9695a; }
+.term { border-top: 8px solid var(--c, #6577b8); text-align: center; padding: 28px 18px; }
+.term .grp { font-size: 13px; letter-spacing: 1.5px; font-weight: bold; color: var(--c, #6577b8); text-transform: uppercase; }
+.term .ic { font-size: 54px; margin: 10px 0 4px; }
+.term .w { font-size: 40px; font-weight: bold; letter-spacing: 1px; word-break: break-word; }
+.taboo { margin-top: 18px; background: #fdf0ee; border-radius: 12px; padding: 12px; }
+.taboo b { display: block; color: #d9695a; font-size: 13px; letter-spacing: 1px; margin-bottom: 6px; }
+.taboo div { font-size: 18px; font-weight: bold; color: #7a2e25; }
+.hint { margin-top: 12px; font-size: 14px; color: #5d6678; }
+.btns { display: grid; grid-template-columns: 1fr 2fr; gap: 10px; margin-top: 14px; }
+.pass { background: #e9ecf3; color: #172033; }
+.got { background: #4caf75; }
+.score { text-align: center; }
+.score .n { font-size: 64px; font-weight: bold; color: #4caf75; }
+.list { margin: 16px 0; padding: 0; list-style: none; text-align: left; }
+.list li { padding: 8px 10px; border-radius: 10px; margin-bottom: 6px; background: #f4f7fb; font-size: 15px; }
+.list li.miss { background: #fdf0ee; }
+.list li small { display: block; color: #5d6678; margin-top: 3px; line-height: 1.4; }
+.hidden { display: none; }
+@media (max-width: 420px) { .term .w { font-size: 30px; } h1 { font-size: 26px; } }
+</style>
+</head>
+<body>
+<div class="app">
+  <a class="back" href="index.html">← All games</a>
+  <header>
+    <div class="eyebrow">SESSION 2 • PARTNER GAME</div>
+    <h1>🗣️ Say It Another Way</h1>
+    <p class="subtitle">Explain the word without saying it. Your partner guesses.</p>
+  </header>
+
+  <section class="panel" id="setup">
+    <ol class="steps">
+      <li><b>Explainer</b> holds the phone. Only they look at the screen.</li>
+      <li>Describe the word to your <b>guesser</b> without saying the word or the red "don't say" words. The Term Clinic comparisons help: "it's like TV static…"</li>
+      <li>Tap <b>Got it</b> when they guess right, or <b>Pass</b> to skip.</li>
+      <li>When time runs out, swap roles and play again.</li>
+    </ol>
+    <div class="row" id="timeRow"><span>Round length</span></div>
+    <div class="row" id="grpRow"><span>Words from</span></div>
+    <button class="big" id="start">Start round</button>
+  </section>
+
+  <section class="hidden" id="play">
+    <div class="top"><span id="count">Score 0</span><span class="timer" id="timer">1:30</span></div>
+    <div class="panel term" id="card">
+      <div class="grp" id="grp"></div>
+      <div class="ic" id="ic"></div>
+      <div class="w" id="word"></div>
+      <div class="taboo"><b>DON'T SAY</b><div id="taboo"></div></div>
+      <div class="hint" id="hint"></div>
+    </div>
+    <div class="btns">
+      <button class="big pass" id="pass">Pass →</button>
+      <button class="big got" id="got">Got it ✓</button>
+    </div>
+  </section>
+
+  <section class="panel score hidden" id="done">
+    <div>Time's up! Your team explained</div>
+    <div class="n" id="final">0</div>
+    <div id="finalTxt"></div>
+    <ul class="list" id="list"></ul>
+    <button class="big" id="again">Swap roles and play again</button>
+    <p style="margin-top:14px"><a class="back" href="term-clinic.html">Review the words in the Term Clinic →</a></p>
+  </section>
+</div>
+<script>
+/* term, icon, group, don't-say words, short meaning (shown after the round) */
+const GROUPS = {
+  light: { name: "Light and energy", color: "#6577b8" },
+  optical: { name: "Optical sensors", color: "#4caf75" },
+  radar: { name: "Radar", color: "#d9695a" },
+  lidar: { name: "LiDAR", color: "#c4932f" },
+  use: { name: "Using the data", color: "#3d9bd1" }
+};
+const TERMS = [
+  ["SPECTRUM", "🌈", "light", ["rainbow", "range", "electromagnetic"], "The full range of electromagnetic energy, visible to microwave."],
+  ["WAVELENGTH", "〰️", "light", ["distance", "peak", "wave"], "Distance from one wave peak to the next."],
+  ["INFRARED", "🔴", "light", ["red", "heat", "invisible"], "Energy just beyond red that our eyes cannot see."],
+  ["REFLECTED", "🪞", "light", ["mirror", "bounce", "sunlight"], "Sunlight that bounces off a surface back to the sensor."],
+  ["EMITTED", "♨️", "light", ["give off", "heat", "release"], "Energy a warm surface gives off by itself."],
+  ["ABSORPTION", "🧽", "light", ["sponge", "soak", "dip"], "A material soaking up energy: a dip in its spectral curve."],
+  ["PASSIVE", "☀️", "light", ["flash", "sunlight", "active"], "Records energy already there, like sunlight or heat."],
+  ["ACTIVE", "🔦", "light", ["flash", "own energy", "passive"], "Sends out its own energy, like radar or LiDAR."],
+  ["VNIR", "🌿", "optical", ["visible", "near", "infrared"], "Visible + near-infrared; healthy plants are bright."],
+  ["SWIR", "💧", "optical", ["shortwave", "infrared", "water"], "Shortwave infrared, 1–2.5 µm; sensitive to moisture."],
+  ["THERMAL", "🌡️", "optical", ["heat", "temperature", "hot"], "Infrared that measures heat emitted by the surface."],
+  ["HYPERSPECTRAL", "🎼", "optical", ["hundreds", "bands", "spectral"], "Hundreds of narrow bands; each pixel has a full curve."],
+  ["FINGERPRINT", "🫆", "optical", ["finger", "signature", "unique"], "A material's unique spectral curve."],
+  ["SENTINEL", "🛰️", "optical", ["Copernicus", "Europe", "satellite"], "European satellite family: 1 = radar, 2 = VNIR + SWIR."],
+  ["MICROWAVE", "📡", "radar", ["oven", "clouds", "radar"], "Longest wavelengths (1 mm–1 m); pass through clouds."],
+  ["RADAR", "🦇", "radar", ["echo", "SAR", "microwave"], "Sends microwave pulses and records the echo."],
+  ["BACKSCATTER", "🏓", "radar", ["back", "bounce", "return"], "The part of the radar pulse that comes back to the sensor."],
+  ["SPECKLE", "📺", "radar", ["noise", "grainy", "static"], "Salt-and-pepper noise in radar images. Normal, not an error."],
+  ["FLOOD", "🌊", "radar", ["water", "dark", "storm"], "Smooth water sends radar away, so floods look dark."],
+  ["LIDAR", "📏", "lidar", ["laser", "light", "height"], "Laser pulses timed to measure height and distance."],
+  ["PULSE", "⚡", "lidar", ["burst", "laser", "beat"], "One short burst of laser light."],
+  ["CANOPY", "🌳", "lidar", ["tree", "forest", "top"], "The treetop layer of a forest."],
+  ["ELEVATION", "⛰️", "lidar", ["height", "ground", "sea level"], "Height of the ground above sea level."],
+  ["NDVI", "🌱", "use", ["vegetation", "index", "green"], "(NIR − Red) ÷ (NIR + Red): a plant health score."],
+  ["RESOLUTION", "🔍", "use", ["pixel", "size", "detail"], "The ground size of one pixel."],
+  ["ISLAND", "🏙️", "use", ["heat", "city", "urban"], "Urban heat island: cities hotter than the countryside."]
+];
+const TIMES = [[60, "1 min"], [90, "1½ min"], [120, "2 min"]];
+let secs = 90, grp = "all", deck = [], i = 0, score = 0, log = [], left = 0, tick = null;
+const $ = id => document.getElementById(id);
+
+function pills(row, items, get, set) {
+  row.querySelectorAll("button").forEach(b => b.remove());
+  items.forEach(([v, label]) => {
+    const b = document.createElement("button");
+    b.className = "opt"; b.textContent = label; b.setAttribute("aria-pressed", get() === v);
+    b.onclick = () => { set(v); pills(row, items, get, set); };
+    row.appendChild(b);
+  });
+}
+pills($("timeRow"), TIMES, () => secs, v => secs = v);
+pills($("grpRow"), [["all", "All 26"], ...Object.entries(GROUPS).map(([k, g]) => [k, g.name])], () => grp, v => grp = v);
+
+function show(id) { ["setup", "play", "done"].forEach(s => $(s).classList.toggle("hidden", s !== id)); }
+function fmt(s) { return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); }
+function shuffle(a) { for (let k = a.length - 1; k > 0; k--) { const j = Math.floor(Math.random() * (k + 1)); [a[k], a[j]] = [a[j], a[k]]; } return a; }
+
+function draw() {
+  if (i >= deck.length) { deck = shuffle(deck.slice()); i = 0; }
+  const [t, ic, g, taboo] = deck[i], G = GROUPS[g];
+  $("card").style.setProperty("--c", G.color);
+  $("grp").textContent = G.name; $("ic").textContent = ic; $("word").textContent = t;
+  $("taboo").textContent = taboo.join(" · ");
+  $("hint").textContent = "Stuck? Use the comparison from the Term Clinic card.";
+}
+function next(ok) {
+  log.push([deck[i], ok]);
+  if (ok) score++;
+  $("count").textContent = "Score " + score;
+  i++; draw();
+}
+function start() {
+  deck = shuffle(TERMS.filter(t => grp === "all" || t[2] === grp)); i = 0; score = 0; log = []; left = secs;
+  $("count").textContent = "Score 0"; $("timer").textContent = fmt(left); $("timer").classList.remove("low");
+  show("play"); draw(); $("got").focus();
+  clearInterval(tick);
+  tick = setInterval(() => {
+    left--; $("timer").textContent = fmt(Math.max(left, 0)); $("timer").classList.toggle("low", left <= 10);
+    if (left <= 0) end();
+  }, 1000);
+}
+function end() {
+  clearInterval(tick);
+  $("final").textContent = score;
+  $("finalTxt").textContent = score === 1 ? "word" : "words";
+  $("list").innerHTML = log.map(([t, ok]) => `<li class="${ok ? "" : "miss"}">${ok ? "✅" : "⏭️"} <b>${t[0]}</b><small>${t[4]}</small></li>`).join("") || "<li>No words this round.</li>";
+  show("done");
+}
+$("start").onclick = start;
+$("again").onclick = start;
+$("got").onclick = () => next(true);
+$("pass").onclick = () => next(false);
+</script>
+</body>
+</html>
