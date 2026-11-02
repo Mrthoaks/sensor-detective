@@ -46,7 +46,7 @@ h1 { font-size: 36px; margin: 0 0 10px; }
   <header>
     <div class="eyebrow">SESSION 2 • WORD LAB DEBRIEF</div>
     <h1>🩺 Term Clinic</h1>
-    <p class="subtitle">All 26 words from the Sensor Word Lab. Guess what a word means, then tap the card to check: plain meaning, an everyday comparison, and where you meet it.</p>
+    <p class="subtitle">All 35 key sensor words from our lessons. Guess what a word means, then tap the card to check: plain meaning, an everyday comparison, and where you meet it.</p>
   </header>
   <div class="bar" id="bar"></div>
   <p class="tools"><button id="flipAll">Flip all</button> · <button id="reset">Reset</button></p>
@@ -57,6 +57,7 @@ const GROUPS = [
   { id: "light", name: "Light and energy", color: "#6577b8", intro: "How energy travels from the Sun or the sensor to the ground and back.", terms: [
     ["SPECTRUM", "🌈", "The full range of electromagnetic energy, from short visible light out to long microwaves.", "A piano keyboard. Our eyes hear only a few keys in the middle; sensors hear the rest.", "Every sensor listens to a different part of it."],
     ["WAVELENGTH", "〰️", "The distance from one wave peak to the next. It decides what the energy can do and what it can pass through.", "Ripples on a pond: short choppy ones vs long rolling swells.", "µm for VNIR/SWIR/TIR, cm for radar."],
+    ["BAND", "🎚️", "One slice of the spectrum that a sensor records as its own image layer.", "One key on the piano keyboard, or one channel on a radio.", "Sentinel-2 has 13 bands; hyperspectral sensors have hundreds."],
     ["INFRARED", "🔴", "Energy with wavelengths just longer than red light. Invisible to us, but sensors record it.", "The warmth from a stove you feel but cannot see.", "NIR, SWIR and thermal are all infrared."],
     ["REFLECTED", "🪞", "Sunlight that hits a surface and bounces back up to the sensor.", "A mirror or a white wall throwing light back at you.", "What VNIR, SWIR and hyperspectral record."],
     ["EMITTED", "♨️", "Energy a surface gives off by itself because it is warm, not sunlight bouncing off it.", "A hot pan on a stove glowing with heat after the lights go off.", "What thermal (TIR) records, day or night."],
@@ -70,12 +71,14 @@ const GROUPS = [
     ["THERMAL", "🌡️", "Infrared about 8–14 µm that measures heat the surface emits, giving land surface temperature.", "A forehead thermometer that you point at the ground from space.", "Landsat band 10, MODIS land surface temperature."],
     ["HYPERSPECTRAL", "🎼", "A sensor with hundreds of narrow, side-by-side bands, so each pixel has a detailed spectral curve.", "Normal sensors hear a few notes; hyperspectral hears the whole song.", "EnMAP, PRISMA, EMIT: minerals, crop stress, pollution."],
     ["FINGERPRINT", "🫆", "A material's unique spectral curve (its 'signature') that lets us identify what it is.", "Like a human fingerprint: no two materials match exactly.", "Hyperspectral matches pixels to a spectral library."],
-    ["SENTINEL", "🛰️", "The European Copernicus satellite family, free to download.", "A family of siblings with different jobs.", "Sentinel-1 = radar, Sentinel-2 = VNIR + SWIR."]
+    ["SENTINEL", "🛰️", "The European Copernicus satellite family, free to download.", "A family of siblings with different jobs.", "Sentinel-1 = radar, Sentinel-2 = VNIR + SWIR."],
+    ["LANDSAT", "🇺🇸", "NASA and USGS satellites that have imaged Earth since 1972, free to download.", "The older American cousin of Sentinel, with a 50-year family photo album.", "Landsat 8 and 9: VNIR, SWIR and thermal bands at 30 m."]
   ]},
   { id: "radar", name: "Radar (microwave)", color: "#d9695a", intro: "Active sensors that see through clouds, smoke and darkness.", terms: [
     ["MICROWAVE", "📡", "The longest wavelengths we use, about 1 mm to 1 m. They pass through clouds and rain.", "The same family of waves your microwave oven and Wi-Fi use.", "Radar works in any weather, day or night."],
     ["RADAR", "🦇", "An active sensor that sends microwave pulses and records the echo. SAR is the satellite kind.", "Shouting in a canyon and listening to the echo.", "Sentinel-1, RADARSAT, ALOS."],
     ["BACKSCATTER", "🏓", "The part of the radar pulse that bounces back toward the sensor. Bright pixel = strong backscatter.", "A ball thrown at a rough wall bounces back; at a smooth floor it skips away.", "Rough or built-up = bright; smooth water = dark."],
+    ["ROUGHNESS", "🪨", "How bumpy a surface is compared to the radar wavelength. Radar mostly feels texture, not color.", "Running your hand over sandpaper versus glass.", "Rough = bright (cities, forests); smooth = dark (calm water, roads)."],
     ["SPECKLE", "📺", "Grainy, salt-and-pepper noise in radar images, caused by many tiny echoes interfering inside each pixel. It is normal, not an error.", "TV static, or the grain in a photo taken in a dark room.", "Reduced with speckle filters or by averaging images."],
     ["FLOOD", "🌊", "In radar, flood water is calm and smooth, so it sends the pulse away and shows up as dark patches.", "Smooth water acts like a mirror tilted away from you.", "Sentinel-1 flood maps after storms."]
   ]},
@@ -83,12 +86,18 @@ const GROUPS = [
     ["LIDAR", "📏", "Light Detection And Ranging: fires laser pulses and times their return to measure distance and height.", "A laser tape measure, firing thousands of times a second.", "Tree height, building models, terrain."],
     ["PULSE", "⚡", "One short burst of laser light. The time it takes to return gives the distance.", "Clapping once and timing the echo.", "Some pulses hit leaves, some reach the ground."],
     ["CANOPY", "🌳", "The top layer of a forest, formed by the crowns of the trees. LiDAR measures its height.", "The roof of the forest, or an umbrella over the ground.", "Canopy height = top of trees minus ground elevation."],
-    ["ELEVATION", "⛰️", "Height of the ground above sea level. LiDAR builds detailed elevation models (DEMs).", "Contour lines on a hiking map, made very precise.", "Flood risk, slope, drainage, sea-level rise."]
+    ["ELEVATION", "⛰️", "Height of the ground above sea level. LiDAR builds detailed elevation models (DEMs).", "Contour lines on a hiking map, made very precise.", "Flood risk, slope, drainage, sea-level rise."],
+    ["RETURN", "↩️", "Each echo that comes back from one laser pulse. One pulse can have several returns.", "Shouting in a canyon and hearing echoes from near and far walls.", "First return = treetop; last return = the ground."],
+    ["POINT CLOUD", "☁️", "The millions of 3D dots that LiDAR returns make, together forming a model of the land.", "A dot-to-dot picture, but in 3D and with millions of dots.", "Used to build forest and city models and elevation maps."]
   ]},
   { id: "use", name: "Using the data", color: "#3d9bd1", intro: "Words for what we measure and map with the images.", terms: [
     ["NDVI", "🌱", "Normalized Difference Vegetation Index = (NIR − Red) ÷ (NIR + Red). Ranges −1 to +1; higher = greener, healthier plants.", "A health score for plants, like a report card from 0 to 1.", "Crop monitoring, drought, deforestation."],
     ["RESOLUTION", "🔍", "The ground size of one pixel. Smaller pixels show more detail.", "Zooming in on a phone photo until it turns into squares.", "Sentinel-2 10 m, Landsat 30 m (thermal 100 m), MODIS 250 m–1 km."],
-    ["ISLAND", "🏙️", "Urban heat island: cities are hotter than the countryside around them because of concrete, asphalt and less vegetation.", "A parking lot in summer vs the shade of a park.", "Seen clearly in thermal (TIR) images."]
+    ["ISLAND", "🏙️", "Urban heat island: cities are hotter than the countryside around them because of concrete, asphalt and less vegetation.", "A parking lot in summer vs the shade of a park.", "Seen clearly in thermal (TIR) images."],
+    ["WILDFIRE", "🔥", "SWIR and thermal images show active fire and burn scars, even through smoke.", "Night-vision goggles that see the heat behind the smoke.", "Fire mapping, burn-scar size, recovery after a fire."],
+    ["DROUGHT", "🏜️", "A long dry spell. Thirsty plants show up as low NDVI and a hot surface in thermal.", "A wilted houseplant: droopy and warm to the touch.", "Crop losses, water planning, fire risk."],
+    ["MINERALS", "💎", "Rocks and minerals found by their spectral fingerprint in hyperspectral and SWIR images.", "Telling candies apart by their exact color shade.", "Mining, geology maps, finding clay and iron in soil."],
+    ["CHANGE DETECTION", "🔄", "Comparing images of the same place from two dates to see what changed.", "A spot-the-difference puzzle with a before and after photo.", "Flood extent, fire damage, new buildings, lost forest."]
   ]}
 ];
 
@@ -96,7 +105,7 @@ const bar = document.getElementById("bar"), groupsEl = document.getElementById("
 let filter = "all";
 function renderBar() {
   bar.innerHTML = "";
-  [{ id: "all", name: "All 26" }, ...GROUPS].forEach(g => {
+  [{ id: "all", name: "All " + GROUPS.reduce((n, g) => n + g.terms.length, 0) }, ...GROUPS].forEach(g => {
     const b = document.createElement("button");
     b.textContent = g.name; b.setAttribute("aria-pressed", filter === g.id);
     b.onclick = () => { filter = g.id; renderBar(); renderGroups(); };
