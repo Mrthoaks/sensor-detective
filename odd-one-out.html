@@ -44,6 +44,7 @@ button:focus-visible, a:focus-visible { outline: 3px solid #172033; outline-offs
 .cert .medal { font-size: 60px; margin-top: 10px; }
 .cert .role { font-size: 24px; font-weight: bold; color: #5268a5; }
 .cert .roleTxt { font-size: 14px; color: #5d6678; margin: 6px auto 14px; max-width: 380px; line-height: 1.5; }
+.cert .thanks { font-size: 18px; font-weight: bold; color: #4caf75; margin: 4px 0 10px; }
 .cert .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 0 0 14px; }
 .cert .stats div { background: white; border-radius: 12px; padding: 10px 4px; border: 1px solid #dfe4ed; }
 .cert .stats b { display: block; font-size: 22px; color: #4caf75; }
@@ -70,7 +71,7 @@ button:focus-visible, a:focus-visible { outline: 3px solid #172033; outline-offs
       <li>12 rounds, each with 4 words from the Term Clinic.</li>
       <li>Find the word that doesn't fit with the other three.</li>
       <li>Right answer = 100 points, plus up to 50 bonus points for speed.</li>
-      <li>After each round you'll see why. At the end you get a certificate with your role and class rank.</li>
+      <li>After each round you'll see why. At the end you get a certificate with your detective role.</li>
     </ol>
     <button class="big" id="start">Start</button>
   </section>
@@ -94,14 +95,11 @@ button:focus-visible, a:focus-visible { outline: 3px solid #172033; outline-offs
       <div class="medal" id="medal">🛰️</div>
       <div class="role" id="role"></div>
       <div class="roleTxt" id="roleTxt"></div>
-      <div class="stats">
-        <div><b id="final">0</b><span>points</span></div>
-        <div><b id="correct">0/12</b><span>correct</span></div>
-        <div><b id="rank">…</b><span id="rankTxt">class rank</span></div>
-      </div>
+      <div class="thanks">Thank you for your participation! 🎉</div>
       <div class="small" id="cdate"></div>
     </div>
     <div class="sent" id="sent"></div>
+    <div class="sent">Your score: <b id="final">0</b> points · <b id="correct">0/12</b> correct</div>
     <div class="btns2">
       <button class="big ghost" id="print">🖨️ Print / save</button>
       <button class="big" id="again">Play again</button>
@@ -178,38 +176,21 @@ const ROLES = [
   [4, "🔭", "Rising Image Interpreter", "You're building the vocabulary of remote sensing. Keep exploring!"],
   [0, "🌱", "Junior Earth Explorer", "Every expert starts here. Flip through the Term Clinic and try again!"]
 ];
-async function classRank(name) {
-  try {
-    const day = new Date(); day.setHours(0, 0, 0, 0);
-    const best = {};
-    (await Scores.list()).filter(r => r[1] === "oddone" && r[0] >= day.getTime()).forEach(r => {
-      const k = String(r[2]).toLowerCase(); best[k] = Math.max(best[k] || 0, Number(r[3]) || 0);
-    });
-    const me = name.toLowerCase();
-    if (!(me in best)) return null;
-    const all = Object.values(best);
-    return { rank: all.filter(v => v > best[me]).length + 1, of: all.length };
-  } catch (e) { return null; }
-}
 async function finish() {
   show("done");
   const name = (window.Scores && Scores.name()) || "";
   const [, ic, role, txt] = ROLES.find(x => right >= x[0]);
   $("cname").textContent = name || "Sensor Detective";
   $("medal").textContent = ic; $("role").textContent = role; $("roleTxt").textContent = txt;
-  $("final").textContent = pts; $("correct").textContent = `${right}/${order.length}`;
   $("cdate").textContent = new Date().toLocaleDateString([], { year: "numeric", month: "long", day: "numeric" });
-  $("rank").textContent = "–"; $("rankTxt").textContent = "class rank"; $("sent").textContent = "";
+  $("final").textContent = pts; $("correct").textContent = `${right}/${order.length}`;
+  $("sent").textContent = "";
   if (window.Scores && Scores.enabled) {
-    $("rank").textContent = "…";
     $("sent").textContent = "Sending to the leaderboard…";
     const ok = await Scores.submit("oddone", pts, `${right}/${order.length} correct`);
     const n = Scores.name();
     if (n) $("cname").textContent = n;
     $("sent").textContent = ok ? "✅ Score sent to the class leaderboard" : "Score saved; it will send when you're back online.";
-    const r = ok && n ? await classRank(n) : null;
-    $("rank").textContent = r ? "#" + r.rank : "–";
-    $("rankTxt").textContent = r ? `of ${r.of} today` : "class rank";
   }
 }
 $("start").onclick = $("again").onclick = () => { order = shuffle(ROUNDS); r = 0; pts = 0; right = 0; show("play"); startRound(); };
