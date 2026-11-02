@@ -63,7 +63,7 @@ const SCORE_URL = "https://script.google.com/macros/s/AKfycbz28OKEh0aP0LThy5-YAR
     name: () => store.get(NAME_KEY),
     setName: n => store.set(NAME_KEY, String(n).trim().slice(0, 24)),
     playerId,
-    /* game: "detective" | "wordsearch" | "unscramble" */
+    /* game: "detective" | "wordsearch" | "unscramble" | "oddone" */
     async submit(game, score, detail, name) {
       if (!SCORE_URL) return false;
       let n = (name || store.get(NAME_KEY)).trim();
