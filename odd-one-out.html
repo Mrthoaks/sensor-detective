@@ -36,6 +36,22 @@ button:focus-visible, a:focus-visible { outline: 3px solid #172033; outline-offs
 .score { text-align: center; }
 .score .n { font-size: 60px; font-weight: bold; color: #4caf75; }
 .sent { font-size: 14px; color: #5d6678; min-height: 18px; margin: 8px 0 16px; }
+.cert { text-align: center; border: 4px double #6577b8; border-radius: 22px; padding: 26px 18px; background: linear-gradient(#fff, #f3f5fb); box-shadow: 0 6px 20px rgba(0,0,0,.06); }
+.cert .corner { font-size: 11px; letter-spacing: 2px; color: #5268a5; font-weight: bold; }
+.cert .ctitle { font-size: 26px; font-weight: bold; margin: 10px 0 14px; font-family: Georgia, serif; }
+.cert .small { font-size: 14px; color: #5d6678; line-height: 1.5; }
+.cert .cname { font-size: 34px; font-weight: bold; color: #172033; margin: 6px 0 10px; font-family: Georgia, serif; border-bottom: 2px solid #dfe4ed; display: inline-block; padding: 0 16px 4px; word-break: break-word; }
+.cert .medal { font-size: 60px; margin-top: 10px; }
+.cert .role { font-size: 24px; font-weight: bold; color: #5268a5; }
+.cert .roleTxt { font-size: 14px; color: #5d6678; margin: 6px auto 14px; max-width: 380px; line-height: 1.5; }
+.cert .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 0 0 14px; }
+.cert .stats div { background: white; border-radius: 12px; padding: 10px 4px; border: 1px solid #dfe4ed; }
+.cert .stats b { display: block; font-size: 22px; color: #4caf75; }
+.cert .stats span { font-size: 12px; color: #5d6678; }
+.btns2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.ghost { background: #e9ecf3; color: #172033; }
+.sent { text-align: center; }
+@media print { body { background: white; } .back, .btns2, .sent, header { display: none !important; } .cert { box-shadow: none; } }
 .hidden { display: none; }
 @media (max-width: 420px) { h1 { font-size: 26px; } .opt { font-size: 15px; padding: 14px 6px; } }
 </style>
@@ -54,7 +70,7 @@ button:focus-visible, a:focus-visible { outline: 3px solid #172033; outline-offs
       <li>12 rounds, each with 4 words from the Term Clinic.</li>
       <li>Find the word that doesn't fit with the other three.</li>
       <li>Right answer = 100 points, plus up to 50 bonus points for speed.</li>
-      <li>After each round you'll see why. Your score goes to the class leaderboard.</li>
+      <li>After each round you'll see why. At the end you get a certificate with your role and class rank.</li>
     </ol>
     <button class="big" id="start">Start</button>
   </section>
@@ -68,13 +84,29 @@ button:focus-visible, a:focus-visible { outline: 3px solid #172033; outline-offs
     <button class="big hidden" id="next" style="margin-top:14px">Next →</button>
   </section>
 
-  <section class="panel score hidden" id="done">
-    <div>Final score</div>
-    <div class="n" id="final">0</div>
-    <div id="finalTxt"></div>
+  <section class="hidden" id="done">
+    <div class="cert" id="cert">
+      <div class="corner">SENSOR DETECTIVE • GIS IN SISS</div>
+      <div class="ctitle">Certificate of Participation</div>
+      <div class="small">This certifies that</div>
+      <div class="cname" id="cname">Detective</div>
+      <div class="small">took part in the Remote Sensing Term Challenge and earned the role of</div>
+      <div class="medal" id="medal">🛰️</div>
+      <div class="role" id="role"></div>
+      <div class="roleTxt" id="roleTxt"></div>
+      <div class="stats">
+        <div><b id="final">0</b><span>points</span></div>
+        <div><b id="correct">0/12</b><span>correct</span></div>
+        <div><b id="rank">…</b><span id="rankTxt">class rank</span></div>
+      </div>
+      <div class="small" id="cdate"></div>
+    </div>
     <div class="sent" id="sent"></div>
-    <button class="big" id="again">Play again</button>
-    <p style="margin-top:14px"><a class="back" href="term-clinic.html">Review the words in the Term Clinic →</a></p>
+    <div class="btns2">
+      <button class="big ghost" id="print">🖨️ Print / save</button>
+      <button class="big" id="again">Play again</button>
+    </div>
+    <p style="margin-top:14px;text-align:center"><a class="back" href="term-clinic.html">Review the words in the Term Clinic →</a></p>
   </section>
 </div>
 <script src="scores.js"></script>
@@ -139,18 +171,49 @@ function pick(w) {
   $("next").textContent = r + 1 < order.length ? "Next →" : "See my score";
   $("next").classList.remove("hidden"); $("next").focus();
 }
+const ROLES = [
+  [12, "🏆", "Master Sensor Detective", "A perfect round. You can tell radar from LiDAR from thermal at a glance."],
+  [10, "🛰️", "Senior Remote Sensing Analyst", "You know how the words connect, not just what they mean."],
+  [7, "📡", "Sensor Specialist", "Solid skills. A few more rounds and you'll be the expert in the room."],
+  [4, "🔭", "Rising Image Interpreter", "You're building the vocabulary of remote sensing. Keep exploring!"],
+  [0, "🌱", "Junior Earth Explorer", "Every expert starts here. Flip through the Term Clinic and try again!"]
+];
+async function classRank(name) {
+  try {
+    const day = new Date(); day.setHours(0, 0, 0, 0);
+    const best = {};
+    (await Scores.list()).filter(r => r[1] === "oddone" && r[0] >= day.getTime()).forEach(r => {
+      const k = String(r[2]).toLowerCase(); best[k] = Math.max(best[k] || 0, Number(r[3]) || 0);
+    });
+    const me = name.toLowerCase();
+    if (!(me in best)) return null;
+    const all = Object.values(best);
+    return { rank: all.filter(v => v > best[me]).length + 1, of: all.length };
+  } catch (e) { return null; }
+}
 async function finish() {
   show("done");
-  $("final").textContent = pts;
-  $("finalTxt").textContent = `${right} of ${order.length} correct`;
-  $("sent").textContent = "";
+  const name = (window.Scores && Scores.name()) || "";
+  const [, ic, role, txt] = ROLES.find(x => right >= x[0]);
+  $("cname").textContent = name || "Sensor Detective";
+  $("medal").textContent = ic; $("role").textContent = role; $("roleTxt").textContent = txt;
+  $("final").textContent = pts; $("correct").textContent = `${right}/${order.length}`;
+  $("cdate").textContent = new Date().toLocaleDateString([], { year: "numeric", month: "long", day: "numeric" });
+  $("rank").textContent = "–"; $("rankTxt").textContent = "class rank"; $("sent").textContent = "";
   if (window.Scores && Scores.enabled) {
+    $("rank").textContent = "…";
     $("sent").textContent = "Sending to the leaderboard…";
     const ok = await Scores.submit("oddone", pts, `${right}/${order.length} correct`);
+    const n = Scores.name();
+    if (n) $("cname").textContent = n;
     $("sent").textContent = ok ? "✅ Score sent to the class leaderboard" : "Score saved; it will send when you're back online.";
+    const r = ok && n ? await classRank(n) : null;
+    $("rank").textContent = r ? "#" + r.rank : "–";
+    $("rankTxt").textContent = r ? `of ${r.of} today` : "class rank";
   }
 }
 $("start").onclick = $("again").onclick = () => { order = shuffle(ROUNDS); r = 0; pts = 0; right = 0; show("play"); startRound(); };
+$("print").onclick = () => window.print();
 $("next").onclick = () => { r++; r < order.length ? startRound() : finish(); };
 </script>
 </body>
