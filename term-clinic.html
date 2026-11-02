@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Term Clinic</title>
+<style>
+* { box-sizing: border-box; }
+body { margin: 0; font-family: Arial, Helvetica, sans-serif; background: #f4f7fb; color: #172033; }
+.app { max-width: 980px; margin: auto; padding: 32px 16px 60px; }
+header { text-align: center; margin-bottom: 20px; }
+.eyebrow { font-size: 13px; font-weight: 700; letter-spacing: 2px; color: #5268a5; margin-bottom: 10px; }
+h1 { font-size: 36px; margin: 0 0 10px; }
+.subtitle { line-height: 1.6; color: #5d6678; font-size: 16px; margin: 0 auto; max-width: 640px; }
+.back { display: inline-block; margin-bottom: 14px; color: #5268a5; font-weight: bold; text-decoration: none; }
+.bar { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 18px 0 8px; }
+.bar button { border: 2px solid #dfe4ed; background: white; color: #172033; border-radius: 999px; padding: 8px 14px; font: bold 14px Arial; cursor: pointer; }
+.bar button[aria-pressed="true"] { background: #6577b8; border-color: #6577b8; color: white; }
+.tools { text-align: center; font-size: 13px; color: #7a8393; margin-bottom: 18px; }
+.tools button { background: none; border: none; color: #5268a5; font: bold 13px Arial; cursor: pointer; text-decoration: underline; }
+.group { margin-top: 26px; }
+.group h2 { font-size: 20px; margin: 0 0 4px; }
+.group > p { margin: 0 0 12px; color: #667085; font-size: 14px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 12px; }
+.card { perspective: 900px; min-height: 230px; display: grid; border: none; background: none; padding: 0; cursor: pointer; text-align: left; font: inherit; color: inherit; }
+.card:focus-visible { outline: 3px solid #172033; outline-offset: 3px; border-radius: 18px; }
+.inner { display: grid; width: 100%; transition: transform .45s ease; transform-style: preserve-3d; }
+.card[aria-pressed="true"] .inner { transform: rotateY(180deg); }
+.face { grid-area: 1 / 1; backface-visibility: hidden; -webkit-backface-visibility: hidden; border-radius: 18px; padding: 16px; box-shadow: 0 6px 20px rgba(0,0,0,.06); background: white; display: flex; flex-direction: column; border-top: 6px solid var(--c); overflow: hidden; }
+.front { align-items: center; justify-content: center; text-align: center; }
+.front .ic { font-size: 44px; margin-bottom: 10px; }
+.front .t { font-size: 21px; font-weight: bold; letter-spacing: .5px; }
+.front .tap { margin-top: 10px; font-size: 12px; color: #8992a5; }
+.back-face { transform: rotateY(180deg); font-size: 13.5px; line-height: 1.45; gap: 6px; }
+.back-face .t { font-weight: bold; font-size: 15px; color: var(--c); }
+.back-face b { color: #172033; }
+.back-face .like { background: #f4f7fb; border-radius: 10px; padding: 6px 8px; }
+.tag { margin-top: auto; font-size: 12px; color: #5d6678; }
+@media (max-width: 520px) { h1 { font-size: 28px; } .grid { grid-template-columns: 1fr 1fr; } .face { padding: 12px; } .back-face { font-size: 12.5px; } }
+@media (prefers-reduced-motion: reduce) { .inner { transition: none; } }
+</style>
+</head>
+<body>
+<div class="app">
+  <a class="back" href="index.html">← All games</a>
+  <header>
+    <div class="eyebrow">SESSION 2 • WORD LAB DEBRIEF</div>
+    <h1>🩺 Term Clinic</h1>
+    <p class="subtitle">All 26 words from the Sensor Word Lab. Guess what a word means, then tap the card to check: plain meaning, an everyday comparison, and where you meet it.</p>
+  </header>
+  <div class="bar" id="bar"></div>
+  <p class="tools"><button id="flipAll">Flip all</button> · <button id="reset">Reset</button></p>
+  <div id="groups"></div>
+</div>
+<script>
+const GROUPS = [
+  { id: "light", name: "Light and energy", color: "#6577b8", intro: "How energy travels from the Sun or the sensor to the ground and back.", terms: [
+    ["SPECTRUM", "🌈", "The full range of electromagnetic energy, from short visible light out to long microwaves.", "A piano keyboard. Our eyes hear only a few keys in the middle; sensors hear the rest.", "Every sensor listens to a different part of it."],
+    ["WAVELENGTH", "〰️", "The distance from one wave peak to the next. It decides what the energy can do and what it can pass through.", "Ripples on a pond: short choppy ones vs long rolling swells.", "µm for VNIR/SWIR/TIR, cm for radar."],
+    ["INFRARED", "🔴", "Energy with wavelengths just longer than red light. Invisible to us, but sensors record it.", "The warmth from a stove you feel but cannot see.", "NIR, SWIR and thermal are all infrared."],
+    ["REFLECTED", "🪞", "Sunlight that hits a surface and bounces back up to the sensor.", "A mirror or a white wall throwing light back at you.", "What VNIR, SWIR and hyperspectral record."],
+    ["EMITTED", "♨️", "Energy a surface gives off by itself because it is warm, not sunlight bouncing off it.", "A hot pan on a stove glowing with heat after the lights go off.", "What thermal (TIR) records, day or night."],
+    ["ABSORPTION", "🧽", "When a material soaks up energy at a wavelength. It shows up as a dip in its spectral curve.", "A sponge soaking up water: less comes back out.", "Water absorbs SWIR, so water and wet soil look dark."],
+    ["PASSIVE", "☀️", "A sensor that only records energy already out there, such as sunlight or heat.", "Taking a photo without a flash.", "Landsat, Sentinel-2, MODIS, thermal cameras."],
+    ["ACTIVE", "🔦", "A sensor that sends out its own energy and records what comes back, so it works at night too.", "Taking a photo with a flash, or a bat using echoes.", "Radar (SAR) and LiDAR."]
+  ]},
+  { id: "optical", name: "Optical sensors", color: "#4caf75", intro: "Sensors that see reflected sunlight or emitted heat.", terms: [
+    ["VNIR", "🌿", "Visible plus near-infrared light, about 0.4–1.0 µm. Healthy leaves reflect NIR very strongly.", "Plants 'glow' in NIR the way a white shirt glows under a black light.", "Landsat bands 2–5, Sentinel-2 bands 2–8."],
+    ["SWIR", "💧", "Shortwave infrared, about 1.0–2.5 µm. Very sensitive to water in leaves, soil and minerals.", "A moisture meter: drier things look brighter.", "Drought, burn scars, mineral mapping."],
+    ["THERMAL", "🌡️", "Infrared about 8–14 µm that measures heat the surface emits, giving land surface temperature.", "A forehead thermometer that you point at the ground from space.", "Landsat band 10, MODIS land surface temperature."],
+    ["HYPERSPECTRAL", "🎼", "A sensor with hundreds of narrow, side-by-side bands, so each pixel has a detailed spectral curve.", "Normal sensors hear a few notes; hyperspectral hears the whole song.", "EnMAP, PRISMA, EMIT: minerals, crop stress, pollution."],
+    ["FINGERPRINT", "🫆", "A material's unique spectral curve (its 'signature') that lets us identify what it is.", "Like a human fingerprint: no two materials match exactly.", "Hyperspectral matches pixels to a spectral library."],
+    ["SENTINEL", "🛰️", "The European Copernicus satellite family, free to download.", "A family of siblings with different jobs.", "Sentinel-1 = radar, Sentinel-2 = VNIR + SWIR."]
+  ]},
+  { id: "radar", name: "Radar (microwave)", color: "#d9695a", intro: "Active sensors that see through clouds, smoke and darkness.", terms: [
+    ["MICROWAVE", "📡", "The longest wavelengths we use, about 1 mm to 1 m. They pass through clouds and rain.", "The same family of waves your microwave oven and Wi-Fi use.", "Radar works in any weather, day or night."],
+    ["RADAR", "🦇", "An active sensor that sends microwave pulses and records the echo. SAR is the satellite kind.", "Shouting in a canyon and listening to the echo.", "Sentinel-1, RADARSAT, ALOS."],
+    ["BACKSCATTER", "🏓", "The part of the radar pulse that bounces back toward the sensor. Bright pixel = strong backscatter.", "A ball thrown at a rough wall bounces back; at a smooth floor it skips away.", "Rough or built-up = bright; smooth water = dark."],
+    ["SPECKLE", "📺", "Grainy, salt-and-pepper noise in radar images, caused by many tiny echoes interfering inside each pixel. It is normal, not an error.", "TV static, or the grain in a photo taken in a dark room.", "Reduced with speckle filters or by averaging images."],
+    ["FLOOD", "🌊", "In radar, flood water is calm and smooth, so it sends the pulse away and shows up as dark patches.", "Smooth water acts like a mirror tilted away from you.", "Sentinel-1 flood maps after storms."]
+  ]},
+  { id: "lidar", name: "LiDAR", color: "#c4932f", intro: "Laser timing that measures height in 3D.", terms: [
+    ["LIDAR", "📏", "Light Detection And Ranging: fires laser pulses and times their return to measure distance and height.", "A laser tape measure, firing thousands of times a second.", "Tree height, building models, terrain."],
+    ["PULSE", "⚡", "One short burst of laser light. The time it takes to return gives the distance.", "Clapping once and timing the echo.", "Some pulses hit leaves, some reach the ground."],
+    ["CANOPY", "🌳", "The top layer of a forest, formed by the crowns of the trees. LiDAR measures its height.", "The roof of the forest, or an umbrella over the ground.", "Canopy height = top of trees minus ground elevation."],
+    ["ELEVATION", "⛰️", "Height of the ground above sea level. LiDAR builds detailed elevation models (DEMs).", "Contour lines on a hiking map, made very precise.", "Flood risk, slope, drainage, sea-level rise."]
+  ]},
+  { id: "use", name: "Using the data", color: "#3d9bd1", intro: "Words for what we measure and map with the images.", terms: [
+    ["NDVI", "🌱", "Normalized Difference Vegetation Index = (NIR − Red) ÷ (NIR + Red). Ranges −1 to +1; higher = greener, healthier plants.", "A health score for plants, like a report card from 0 to 1.", "Crop monitoring, drought, deforestation."],
+    ["RESOLUTION", "🔍", "The ground size of one pixel. Smaller pixels show more detail.", "Zooming in on a phone photo until it turns into squares.", "Sentinel-2 10 m, Landsat 30 m (thermal 100 m), MODIS 250 m–1 km."],
+    ["ISLAND", "🏙️", "Urban heat island: cities are hotter than the countryside around them because of concrete, asphalt and less vegetation.", "A parking lot in summer vs the shade of a park.", "Seen clearly in thermal (TIR) images."]
+  ]}
+];
+
+const bar = document.getElementById("bar"), groupsEl = document.getElementById("groups");
+let filter = "all";
+function renderBar() {
+  bar.innerHTML = "";
+  [{ id: "all", name: "All 26" }, ...GROUPS].forEach(g => {
+    const b = document.createElement("button");
+    b.textContent = g.name; b.setAttribute("aria-pressed", filter === g.id);
+    b.onclick = () => { filter = g.id; renderBar(); renderGroups(); };
+    bar.appendChild(b);
+  });
+}
+function renderGroups() {
+  groupsEl.innerHTML = "";
+  GROUPS.filter(g => filter === "all" || g.id === filter).forEach(g => {
+    const sec = document.createElement("section");
+    sec.className = "group";
+    sec.innerHTML = `<h2>${g.name}</h2><p>${g.intro}</p>`;
+    const grid = document.createElement("div");
+    grid.className = "grid";
+    g.terms.forEach(([t, ic, mean, like, where]) => {
+      const c = document.createElement("button");
+      c.className = "card"; c.style.setProperty("--c", g.color);
+      c.setAttribute("aria-pressed", "false");
+      c.setAttribute("aria-label", `${t}. Tap to show meaning.`);
+      c.innerHTML = `<div class="inner">
+        <div class="face front"><div class="ic">${ic}</div><div class="t">${t}</div><div class="tap">What does it mean? Tap</div></div>
+        <div class="face back-face"><div class="t">${t}</div><div>${mean}</div><div class="like"><b>Think of it like:</b> ${like}</div><div class="tag">📍 ${where}</div></div>
+      </div>`;
+      c.onclick = () => c.setAttribute("aria-pressed", c.getAttribute("aria-pressed") !== "true");
+      grid.appendChild(c);
+    });
+    sec.appendChild(grid);
+    groupsEl.appendChild(sec);
+  });
+}
+document.getElementById("flipAll").onclick = () => document.querySelectorAll(".card").forEach(c => c.setAttribute("aria-pressed", "true"));
+document.getElementById("reset").onclick = () => document.querySelectorAll(".card").forEach(c => c.setAttribute("aria-pressed", "false"));
+renderBar(); renderGroups();
+</script>
+</body>
+</html>
