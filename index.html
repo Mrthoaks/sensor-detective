@@ -26,6 +26,14 @@ h1 { font-size: 38px; margin: 0 0 10px; }
 .card p { margin: 0; color: #667085; font-size: 14px; line-height: 1.45; }
 .card .go { margin-left: auto; font-size: 22px; color: #6577b8; flex: none; }
 .card.off { pointer-events: none; opacity: .5; }
+.next { display: flex; gap: 16px; align-items: center; margin-top: 22px; padding: 22px 22px; border-radius: 18px; text-decoration: none; color: white; background: linear-gradient(135deg, #1f6f6a, #2f8f7f); box-shadow: 0 8px 24px rgba(31,111,106,.3); transition: .2s ease; }
+.next:hover { transform: translateY(-2px); box-shadow: 0 12px 28px rgba(31,111,106,.4); }
+.next .ic { font-size: 42px; flex: none; }
+.next small { display: block; font-size: 12px; font-weight: bold; letter-spacing: 2px; opacity: .85; }
+.next b { display: block; font-size: 22px; margin: 4px 0; }
+.next em { display: block; font-style: normal; font-size: 14px; line-height: 1.45; opacity: .9; }
+.next .go { margin-left: auto; font-size: 28px; flex: none; }
+.next:focus-visible { outline: 3px solid #172033; outline-offset: 2px; }
 .foot { text-align: center; margin-top: 26px; font-size: 13px; color: #8992a5; }
 .foot a { color: #5268a5; }
 @media (max-width: 520px) { h1 { font-size: 28px; } .card .ic { display: none; } }
@@ -50,6 +58,11 @@ h1 { font-size: 38px; margin: 0 0 10px; }
     <a class="card free" href="say-it.html"><span class="n">4</span><span class="ic">🗣️</span><span><h2>Say It Another Way</h2><p>Session 2 partner game: explain a term without saying it while your partner guesses.</p></span><span class="go">→</span></a>
     <a class="card" href="odd-one-out.html"><span class="n">5</span><span class="ic">🧐</span><span><h2>Odd One Out</h2><p>Session 2 speed round: four words, tap the one that doesn't belong. Scores go to the leaderboard.</p></span><span class="go">→</span></a>
   </div>
+  <a class="next" href="data-structures/index.html">
+    <span class="ic">🗂️</span>
+    <span><small>NEXT TOPIC</small><b>Data Structures: Raster vs. Vector</b><em>Data types, shapefiles, relational tables, TINs, quadtrees, storage, indexing and interoperability.</em></span>
+    <span class="go">→</span>
+  </a>
   <p class="foot">Teacher? <a href="leaderboard.html">Open the live leaderboard</a></p>
 </div>
 <script src="scores.js"></script>
