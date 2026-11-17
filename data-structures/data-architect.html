@@ -1,0 +1,995 @@
+<!doctype html>
+<!-- DATA ARCHITECT: a 5E game for GIS Data Structures (raster vs vector, data types, relational tables,
+     storage formats, TINs, quadtrees, compression, indexing, referencing, interoperability).
+     Engage → Explore → Explain → Elaborate → Evaluate as one mission with XP, badges and the class leaderboard. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Data Architect</title>
+<style>
+* { box-sizing: border-box; }
+body { margin: 0; font-family: Arial, Helvetica, sans-serif; background: #f2f7f6; color: #172033; }
+.app { max-width: 1100px; margin: auto; padding: 0 22px 60px; }
+
+.hud { position: sticky; top: 0; z-index: 10; background: rgba(242,247,246,.95); backdrop-filter: blur(6px); display: flex; align-items: center; gap: 14px; padding: 12px 0; margin-bottom: 16px; border-bottom: 1px solid #dde8e5; }
+.brand { font-weight: bold; font-size: 17px; white-space: nowrap; color: #172033; text-decoration: none; }
+.stages { display: flex; gap: 6px; flex: 1; justify-content: center; flex-wrap: wrap; }
+.st { border: 2px solid #d6e2df; border-radius: 30px; padding: 8px 14px; background: white; font: bold 13px Arial; color: #5d6678; cursor: pointer; }
+.st[aria-current="step"] { background: #1f6f6a; border-color: #1f6f6a; color: white; }
+.st.done { border-color: #4caf75; }
+.st.done::after { content: " ✓"; color: #4caf75; }
+.st[aria-current="step"].done::after { color: white; }
+.st:disabled { opacity: .45; cursor: not-allowed; }
+.xp { background: #172033; color: white; border-radius: 30px; padding: 8px 14px; font: bold 13px Arial; white-space: nowrap; }
+.xp b { color: #ffd166; }
+
+header { text-align: center; margin: 20px 0 24px; }
+.eyebrow { font-size: 13px; font-weight: 700; letter-spacing: 2px; color: #1f6f6a; margin-bottom: 10px; }
+h1 { font-size: 38px; margin: 0 0 10px; }
+.subtitle { max-width: 720px; margin: auto; line-height: 1.6; color: #5d6678; font-size: 17px; }
+
+.panel { background: white; border-radius: 20px; padding: 26px; box-shadow: 0 6px 20px rgba(0,0,0,.06); margin-bottom: 20px; }
+.panel h2 { margin: 0 0 6px; font-size: 23px; }
+.panel h3 { margin: 18px 0 8px; font-size: 17px; }
+.sub { margin: 0 0 16px; color: #6b7487; line-height: 1.55; }
+.bridge { display: flex; gap: 15px; align-items: flex-start; background: white; border-radius: 15px; padding: 20px; margin-bottom: 20px; box-shadow: 0 5px 20px rgba(0,0,0,.06); border-left: 5px solid #2f8f7f; line-height: 1.6; }
+.bridge > span { font-size: 30px; }
+.bridge p { margin: 6px 0 0; color: #5d6678; }
+.big-q { text-align: center; font-size: 22px; font-weight: bold; color: #1f6f6a; margin: 6px 0 14px; line-height: 1.4; }
+.muted { color: #7a8393; font-size: 14px; line-height: 1.5; }
+
+.btn { border: 0; border-radius: 12px; padding: 14px 26px; background: #1f6f6a; color: white; font-size: 16px; font-weight: bold; cursor: pointer; }
+.btn:hover { opacity: .92; }
+.btn:disabled { background: #c3cdd0; cursor: not-allowed; }
+.btn.ghost { background: white; color: #1f6f6a; border: 2px solid #d6e2df; }
+.btn.small { padding: 9px 14px; font-size: 14px; }
+.btn.wide { display: block; width: 100%; max-width: 360px; margin: 22px auto 0; }
+button:focus-visible, textarea:focus-visible, input:focus-visible, td[tabindex]:focus-visible, th[tabindex]:focus-visible, tr[tabindex]:focus-visible, svg:focus-visible { outline: 3px solid #172033; outline-offset: 2px; }
+
+textarea { width: 100%; min-height: 96px; border: 2px solid #d6e2df; border-radius: 12px; padding: 12px; font: 15px/1.5 Arial; color: #172033; resize: vertical; }
+input[type=text] { border: 2px solid #d6e2df; border-radius: 10px; padding: 10px 12px; font: 15px Arial; width: 100%; max-width: 320px; }
+
+/* predictions */
+.pred { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; padding: 13px 0; border-bottom: 1px solid #eef2f1; }
+.pred:last-child { border-bottom: 0; }
+.pred p { margin: 0; line-height: 1.5; }
+.seg3 { display: flex; gap: 6px; }
+.seg3 button { border: 2px solid #d6e2df; border-radius: 10px; padding: 8px 12px; background: #f7faf9; font: bold 13px Arial; color: #5d6678; cursor: pointer; }
+.seg3 button[aria-pressed="true"] { background: #1f6f6a; border-color: #1f6f6a; color: white; }
+
+/* messy spreadsheet */
+.sheet { overflow-x: auto; border: 1px solid #cfd8d6; border-radius: 10px; }
+.sheet .fname { background: #217346; color: white; font: bold 13px Arial; padding: 8px 12px; }
+.sheet table { border-collapse: collapse; width: 100%; font: 14px "Courier New", monospace; }
+.sheet th, .sheet td { border: 1px solid #dfe5e3; padding: 9px 10px; text-align: left; white-space: nowrap; cursor: pointer; }
+.sheet th { background: #eef3f1; font-weight: bold; }
+.sheet td:hover, .sheet th:hover { background: #fff8dd; }
+.sheet .hit { background: #fde3df !important; box-shadow: inset 0 0 0 2px #d9695a; }
+.sheet .ok { background: #eef7f0; }
+.found { display: grid; gap: 8px; margin-top: 14px; }
+.found div { background: #fff8e8; border-radius: 10px; padding: 10px 12px; font-size: 14px; line-height: 1.45; }
+.count { font-weight: bold; color: #1f6f6a; }
+
+/* options */
+.q { font-size: 17px; font-weight: bold; line-height: 1.45; margin: 0 0 12px; }
+.qq { margin-bottom: 18px; padding-bottom: 6px; }
+.qq + .qq { border-top: 1px solid #eef2f1; padding-top: 16px; }
+.opts { display: grid; gap: 8px; }
+.opt { display: flex; gap: 12px; align-items: center; text-align: left; border: 2px solid #d6e2df; border-radius: 13px; padding: 12px 14px; background: #f7faf9; font: 15px/1.4 Arial; color: #172033; cursor: pointer; }
+.opt b { display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: white; border: 2px solid #d6e2df; font-size: 12px; flex: none; }
+.opt:hover:not(:disabled) { border-color: #2f8f7f; }
+.opt.right { background: #edf8f1; border-color: #4caf75; }
+.opt.wrong { background: #fdf0ee; border-color: #d9695a; }
+.opt:disabled { cursor: default; }
+.feedback { margin-top: 12px; padding: 14px 16px; border-radius: 13px; background: #edf8f1; border: 1px solid #b9dfc6; line-height: 1.55; font-size: 15px; }
+.feedback.bad { background: #fdf0ee; border-color: #f0c2bb; }
+.say { margin-top: 14px; padding: 14px 18px; border-left: 4px solid #2f8f7f; background: #f7faf9; line-height: 1.55; border-radius: 0 10px 10px 0; }
+
+/* explore */
+.tabs { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin-bottom: 16px; }
+.tab { border: 2px solid #d6e2df; border-radius: 14px; padding: 10px 6px; background: white; font: bold 13px Arial; color: #5d6678; cursor: pointer; position: relative; }
+.tab .ic { display: block; font-size: 22px; margin-bottom: 3px; }
+.tab[aria-pressed="true"] { background: #1f6f6a; border-color: #1f6f6a; color: white; }
+.tab.solved::after { content: "✓"; position: absolute; top: -7px; right: -6px; background: #4caf75; color: white; border-radius: 50%; width: 20px; height: 20px; font-size: 12px; line-height: 20px; }
+.lab { display: grid; grid-template-columns: 1.25fr 1fr; gap: 20px; align-items: start; }
+.viz svg { display: block; width: 100%; max-width: 480px; height: auto; margin: auto; border-radius: 14px; }
+.ctrls { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 12px 0; }
+.tg { border: 2px solid #d6e2df; border-radius: 30px; padding: 8px 14px; background: white; font: bold 13px Arial; color: #5d6678; cursor: pointer; }
+.tg[aria-pressed="true"] { background: #172033; border-color: #172033; color: white; }
+.slider { display: flex; align-items: center; gap: 10px; width: 100%; font-weight: bold; font-size: 14px; }
+.slider input { flex: 1; accent-color: #1f6f6a; }
+.readout { margin-top: 12px; border-radius: 13px; background: #172033; color: #dfe9e7; padding: 13px 15px; font: 13px/1.6 "Courier New", monospace; }
+.readout b { color: #ffd166; }
+.clues h3 { margin: 0 0 10px; font-size: 15px; }
+.clue { display: flex; gap: 10px; padding: 10px 12px; border-radius: 12px; background: #f7faf9; margin-bottom: 8px; font-size: 14px; line-height: 1.45; color: #9aa3b2; }
+.clue strong { color: #172033; white-space: nowrap; }
+.clue.got { background: #fff8e8; color: #172033; }
+.need { font-size: 14px; margin: 8px 0 0; color: #5d6678; }
+.need span { margin-right: 12px; }
+
+.mini { border-collapse: collapse; width: 100%; font-size: 14px; }
+.mini caption { text-align: left; font-weight: bold; padding-bottom: 6px; }
+.mini th, .mini td { border: 1px solid #e1e8e6; padding: 7px 8px; text-align: left; }
+.mini th { background: #eef4f2; font-size: 13px; }
+.mini tr[tabindex] { cursor: pointer; }
+.mini tr[tabindex]:hover td { background: #f6fbfa; }
+.mini tr.hl td, .mini tr.hl:hover td { background: #fff3c4; }
+.mini .pk { color: #1f6f6a; font-weight: bold; }
+.mini .fk { color: #b0563f; font-weight: bold; }
+.ftype { display: grid; gap: 10px; }
+.frow { border: 2px solid #e1e8e6; border-radius: 12px; padding: 10px 12px; }
+.frow.right { border-color: #4caf75; background: #f3fbf6; }
+.frow.wrong { border-color: #d9695a; background: #fdf4f2; }
+.frow .fn { font: bold 14px "Courier New", monospace; }
+.frow .ex { color: #6b7487; font-size: 13px; margin-left: 6px; }
+.frow .ch { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 7px; }
+.frow .ch button { border: 2px solid #d6e2df; border-radius: 8px; padding: 5px 8px; background: white; font: bold 12px Arial; color: #5d6678; cursor: pointer; }
+.frow .ch button[aria-pressed="true"] { background: #1f6f6a; border-color: #1f6f6a; color: white; }
+.frow .why { font-size: 13px; margin-top: 6px; line-height: 1.45; color: #3f4a5c; }
+
+/* explain */
+.etabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.etab { border: 2px solid #d6e2df; border-radius: 30px; padding: 9px 14px; background: white; font: bold 13px Arial; color: #5d6678; cursor: pointer; }
+.etab[aria-pressed="true"] { background: #1f6f6a; border-color: #1f6f6a; color: white; }
+.etab.solved { border-color: #4caf75; }
+.etab.solved::after { content: " ✓"; color: #4caf75; }
+.etab[aria-pressed="true"].solved::after { color: white; }
+.tbl { overflow-x: auto; }
+.cmp { border-collapse: collapse; width: 100%; font-size: 14px; margin: 8px 0 14px; }
+.cmp th, .cmp td { border-bottom: 1px solid #e6ecea; padding: 9px 10px; text-align: left; vertical-align: top; line-height: 1.45; }
+.cmp th { color: #1f6f6a; font-size: 13px; background: #f3f8f7; }
+.cmp code, .ex-body code { background: #eef4f2; padding: 1px 5px; border-radius: 5px; font-size: 13px; }
+.ex-body p, .ex-body li { line-height: 1.6; }
+.ex-body ul { padding-left: 20px; }
+.key { background: #fff8e8; border-radius: 12px; padding: 12px 14px; margin: 12px 0; line-height: 1.55; }
+.check { border-top: 2px dashed #d6e2df; margin-top: 18px; padding-top: 16px; }
+
+/* elaborate */
+.dots { display: flex; gap: 6px; justify-content: center; margin-bottom: 14px; }
+.dots span { width: 12px; height: 12px; border-radius: 50%; background: #d6e2df; }
+.dots span.on { background: #1f6f6a; }
+.dots span.ok { background: #4caf75; }
+.dots span.meh { background: #e4b04a; }
+.case-ic { font-size: 44px; text-align: center; }
+.story { font-size: 17px; line-height: 1.6; text-align: center; max-width: 680px; margin: 6px auto 18px; }
+
+/* evaluate */
+.bar { height: 10px; background: #dfe9e6; border-radius: 10px; overflow: hidden; margin-bottom: 18px; }
+.bar div { height: 100%; background: #2f8f7f; transition: .4s ease; }
+.step { font-size: 12px; font-weight: bold; letter-spacing: 2px; color: #1f6f6a; margin-bottom: 8px; }
+.scale { display: flex; gap: 8px; justify-content: center; margin: 14px 0 6px; }
+.scale button { width: 48px; height: 48px; border-radius: 50%; border: 2px solid #d6e2df; background: white; font: bold 17px Arial; cursor: pointer; }
+.scale button[aria-pressed="true"] { background: #1f6f6a; border-color: #1f6f6a; color: white; }
+.ends { display: flex; justify-content: space-between; max-width: 300px; margin: 0 auto 18px; font-size: 13px; color: #7a8393; }
+.tv { border-collapse: collapse; width: 100%; font-size: 14px; }
+.tv th, .tv td { border-bottom: 1px solid #e6ecea; padding: 9px 8px; text-align: left; vertical-align: top; line-height: 1.45; }
+.cert { text-align: center; border: 3px double #2f8f7f; border-radius: 18px; padding: 26px 20px; }
+.cert .medal { font-size: 60px; }
+.cert h2 { font-size: 30px; margin: 4px 0; }
+.cert .score { font-size: 22px; font-weight: bold; color: #1f6f6a; margin: 6px 0; }
+.badges { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 14px 0; }
+.badge { background: #e3f1ee; color: #1f5a55; border-radius: 30px; padding: 8px 12px; font-weight: bold; font-size: 14px; }
+.badge.off { background: #eef0f4; color: #a3abb9; }
+.rev { list-style: none; padding: 0; columns: 2; text-align: left; max-width: 560px; margin: 14px auto 0; font-size: 14px; line-height: 1.8; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 18px; }
+.finish { text-align: center; }
+.finish .fi { font-size: 52px; }
+
+.toast { position: fixed; left: 50%; bottom: 22px; transform: translate(-50%, 80px); background: #172033; color: white; padding: 12px 18px; border-radius: 30px; font-weight: bold; opacity: 0; transition: .3s ease; z-index: 40; }
+.toast b { color: #ffd166; }
+.toast.show { transform: translate(-50%, 0); opacity: 1; }
+.foot { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-top: 30px; }
+.foot button, .foot a { background: none; border: 0; color: #8992a5; text-decoration: underline; font: 13px Arial; cursor: pointer; }
+
+@media (max-width: 860px) {
+  .lab { grid-template-columns: 1fr; }
+  .tabs { grid-template-columns: repeat(3, 1fr); }
+  .hud { flex-wrap: wrap; }
+  .stages { order: 3; flex-basis: 100%; }
+}
+@media (max-width: 560px) {
+  h1 { font-size: 27px; }
+  .panel { padding: 18px; }
+  .pred { grid-template-columns: 1fr; }
+  .st { padding: 7px 10px; font-size: 12px; }
+  .rev { columns: 1; }
+}
+@media print { .hud, .foot, .row, .toast { display: none !important; } body { background: white; } }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="hud">
+    <a class="brand" href="index.html">🏗️ Data Architect</a>
+    <nav class="stages" id="stages" aria-label="5E stages"></nav>
+    <div class="xp">XP <b id="xp">0</b></div>
+  </div>
+  <main id="stage"></main>
+  <div class="foot">
+    <a href="index.html">← All Data Structures games</a>
+    <button onclick="resetAll(this)">Reset progress</button>
+    <button onclick="unlockAll()">Teacher: unlock all stages</button>
+  </div>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+/* =====================================================================
+   CONTENT
+   ===================================================================== */
+const STAGES = [
+  { id: "engage", n: "1 Engage" }, { id: "explore", n: "2 Explore" }, { id: "explain", n: "3 Explain" },
+  { id: "elaborate", n: "4 Elaborate" }, { id: "evaluate", n: "5 Evaluate" }
+];
+
+/* Engage: the messy spreadsheet. Cells with a problem id are the hidden problems. */
+const MESS_HEAD = [["Site"], ["Location"], ["Water Depth (m)", "p1"], ["Observers"], ["Visit_Date"], ["ZIP"]];
+const MESS_ROWS = [
+  [["Site A"], ["34.05, -118.24"], ["4"], ["Liam"], ["2016-01-14"], ["02134"]],
+  [["Site B"], ["34.07, -118.26"], ["17 ft", "p2"], ["Sarah"], ["Dec 7 2015", "p7"], ["2134", "p6"]],
+  [["Site B"], ["34.0701, -118.2602", "p4"], ["N/A", "p3"], ["Kelly"], ["2015-11-18"], ["02134"]],
+  [["Site C"], ["34.09, -118.21"], ["8"], ["Liam, Sarah", "p5"], ["2015-11-21"], ["02134"]]
+];
+const PROBLEMS = {
+  p1: "🏷️ <strong>Field name with spaces and brackets.</strong> Most databases can't use spaces in field names. Better: <code>Water_Depth_m</code> or <code>WaterDepthM</code>.",
+  p2: "🔢 <strong>“17 ft” is text in a number column, in feet instead of metres.</strong> Now nobody can average the depths. Numbers belong in a number field, in one unit.",
+  p3: "❓ <strong>“N/A” typed as text.</strong> Does it mean unknown or zero? An unknown value should be a true blank, called <em>Null</em>.",
+  p4: "📍 <strong>Site B's location is typed again, slightly differently.</strong> Repeating the location on every visit makes overlapping duplicate points. Store each site once and link visits to it.",
+  p5: "👥 <strong>Two observers squeezed into one cell.</strong> You can't search, count or join people stored this way.",
+  p6: "0️⃣ <strong>The ZIP code lost its leading zero.</strong> It was stored as a number. Codes are labels, not amounts, so store them as text.",
+  p7: "📅 <strong>A date typed in a different style.</strong> A real date field keeps dates consistent, sortable and searchable."
+};
+const NEED_FOUND = 5;
+
+const PREDS = [
+  { s: "A satellite photo and a map of property lines are stored the same way inside a GIS.", truth: "Disagree", why: "The photo is a <em>raster</em> (a grid of cells). Property lines are <em>vector</em> polygons built from x,y points." },
+  { s: "A blank cell and a zero mean the same thing in a data table.", truth: "Disagree", why: "Blank (Null) means <em>we don't know</em>. Zero means <em>we measured it and it is zero</em>." },
+  { s: "Keeping all the data in one big table is the best design.", truth: "Disagree", why: "One big table repeats information, which causes errors. Good designs split data into related tables and join them with keys." },
+  { s: "A shapefile is just one file.", truth: "Disagree", why: "A shapefile is a set of files that travel together: <code>.shp</code>, <code>.shx</code>, <code>.dbf</code>, <code>.prj</code> and often more." },
+  { s: "An index makes a search faster without changing the answer.", truth: "Agree", why: "Like the index in a book, it lets the GIS skip data that can't match. Same result, much less checking." },
+  { s: "Raster data is always less accurate than vector data.", truth: "Disagree", why: "It depends. A raster's detail depends on its cell size, and rasters are the better fit for continuous things like elevation. Vector shines for exact edges." }
+];
+const MISSION_Q = "How should Riverbend store its map data so it is accurate, small, fast to search and easy to share?";
+
+/* ---------- Explore stations ---------- */
+const LAKE = [[60,40],[120,28],[175,52],[208,104],[196,160],[160,202],[104,212],[58,186],[34,140],[40,84]];
+const CS = [60, 40, 30, 20, 10, 5];
+const TYPES = ["Short integer", "Long integer", "Double", "Text", "Date"];
+const FIELDS = [
+  { f: "Slope_Deg", ex: "whole degrees, 0 to 90", a: 0, why: "Small whole numbers fit in a short integer (−32,768 to 32,767), which uses half the space of a long integer." },
+  { f: "Population", ex: "8,400,000 people", a: 1, why: "Too big for a short integer. A long integer holds whole numbers up to about 2.1 billion." },
+  { f: "Water_Depth_m", ex: "2.37", a: 2, why: "It has decimals, so it needs a floating-point type. A double is the most precise." },
+  { f: "ZIP_Code", ex: "02134", a: 3, why: "A ZIP code is a label, not an amount (you never add two ZIP codes). As a number it would lose its leading zero." },
+  { f: "Inspected_On", ex: "2016-01-14", a: 4, why: "A date type lets you sort and filter by time. Avoid naming a field just “Date”: it's a reserved word in many databases." },
+  { f: "Land_Cover", ex: "Water, Vegetation, Pavement", a: 3, why: "Category names are text." }
+];
+const SITES = [[1, "Site A"], [2, "Site B"], [3, "Site C"]];
+const OBS = [[1, 1, 4, 12, "2016-01-14"], [2, 2, 17, 8, "2015-12-07"], [3, 3, 8, 7, "2015-11-18"], [4, 2, 13, 11, "2015-11-21"]];
+const QG = ["33332222", "33332222", "33332222", "33332222", "33111111", "33111111", "11231111", "11321111"].map(r => r.split("").map(Number));
+const LC = { 1: ["#b9bec7", "Pavement"], 2: ["#6f9fd8", "Water"], 3: ["#7cb86a", "Vegetation"] };
+
+const STATIONS = [
+  { id: "A", ic: "🔲", name: "Grid vs Shape", clue: "Raster = a grid of cells with one value each, covering the whole area (great for continuous data like elevation). Vector = x,y points, lines and polygons with exact edges (great for discrete features). Halve the cell size and you store 4× as many cells.",
+    intro: "Riverbend Lake is stored two ways. Slide the cell size and switch between raster and vector. Watch the number of stored values and the area error.",
+    qs: [
+      { q: "You change the cell size from 20 m to 10 m. How many cells does the GIS now store for the same area?", o: ["The same number", "2 times as many", "4 times as many", "Half as many"], a: 2, why: "Halving the cell size halves both the width and the height of each cell, so every old cell becomes 2 × 2 = 4 new cells. More detail costs storage.", hint: "Try 20 m, then 10 m, and compare the cell counts in the readout." },
+      { q: "Which structure records the lake's exact shoreline with the fewest stored numbers?", o: ["A raster with 5 m cells", "A raster with 60 m cells", "A vector polygon", "A multi-band raster"], a: 2, why: "The polygon stores only the x,y vertices along the edge: 10 points = 20 numbers. Even 5 m cells need 2,304 values and still have stair-step edges." },
+      { q: "Ground elevation changes smoothly everywhere across the county. Which structure fits that best?", o: ["A raster, because every cell holds a value and the grid covers the whole area", "One vector point at city hall", "A single polygon", "A text field"], a: 0, why: "Continuous data (elevation, temperature, rainfall) suits rasters, because a raster covers the entire area with values. Vectors suit discrete things with clear edges." }
+    ] },
+  { id: "B", ic: "🔢", name: "Field Types", clue: "The data type decides what math is possible and how much storage is used: short or long integers for whole numbers, float or double for decimals, text for labels and codes, date for time. Null means unknown, not zero.",
+    intro: "Riverbend's new parcels table needs a data type for every field. Pick a type for each one, then press Check.",
+    qs: [
+      { q: "A new field <code>Rain_mm</code> was just added. At Site 3 the rain gauge was broken all week. What should Site 3's value be?", o: ["0", "−1", "The text “broken”", "Null (blank)"], a: 3, why: "Null means “we don't know”. A 0 would claim we measured no rain: a real value that would drag the average down." },
+      { q: "The binary pattern <code>1010100</code> can mean the number 84 or the letter “T”. What decides which one?", o: ["The map projection", "The data type of the field", "The cell size", "The file name"], a: 1, why: "Everything in a computer is 0s and 1s. The data type tells the computer how to read them, so a wrong type gives you wrong data." }
+    ] },
+  { id: "C", ic: "🔗", name: "Keys & Joins", clue: "A primary key uniquely identifies each record (usually an auto-number that never changes). A foreign key points to a primary key in another table. Joins can be one-to-one, one-to-many or many-to-many (which needs an in-between table).",
+    intro: "Riverbend split its stream data into two related tables. Click a row in either table to see which records join together.",
+    qs: [
+      { q: "In the Observations table, the field <code>Site_ID</code> is a…", o: ["Primary key", "Foreign key", "Spatial index", "Text alias"], a: 1, why: "It points to the ID (primary key) of a record in a <em>foreign</em> table, Sites. That's what a foreign key is." },
+      { q: "Site B has two observations. One site, many observations. This is a…", o: ["One-to-one join", "Many-to-many join", "One-to-many join", "Spatial join"], a: 2, why: "One record in Sites matches many records in Observations. In ArcGIS this is handled with a <em>relate</em>, so the site's shape isn't duplicated." },
+      { q: "Observation 4 was made by Liam <em>and</em> Sarah, and both of them make many observations. What do you need?", o: ["Type “Liam, Sarah” in the Observer field", "An in-between table of Observer_ID + Observation_ID pairs", "A second copy of Site B", "Rename the field Observer Names"], a: 1, why: "That's a many-to-many relationship. An intermediary table like <code>Observers_Observations</code> stores one row per person-per-observation." },
+      { q: "Why link tables with an ID number instead of the site's name?", o: ["Names can change, but an ID that means nothing to people never needs to change", "Numbers look neater", "GIS can't store text", "IDs make the map draw in colour"], a: 0, why: "If you linked by name and someone renamed “Site B”, every link would break. A meaningless ID stays stable." }
+    ] },
+  { id: "D", ic: "🗜️", name: "Shrink It", clue: "Run-length encoding stores each row as (value, count) runs. A quadtree keeps splitting the grid into 4 quadrants until each block is all one value. Both are lossless and work best on maps with big uniform areas.",
+    intro: "This land-cover raster has 64 cells. Press Split to build a quadtree, and click any row to see its run-length encoding, written as (value, count).",
+    qs: [
+      { q: "Fully split, how many quadtree blocks does this map need instead of 64 cells?", o: ["64", "22", "10", "1"], a: 2, why: "Three quadrants are each one solid block. The fourth splits into three solid 2×2 blocks plus 4 single cells. 3 + 3 + 4 = 10 blocks.", hint: "Keep pressing Split until nothing changes, then read the block count." },
+      { q: "Run-length encode this row: <code>2 2 2 2 2 3 3 1</code>", o: ["(5,2)(2,3)(1,1)", "(2,5)(3,2)(1,1)", "2 3 1", "(2,8)"], a: 1, why: "Five 2s, two 3s, one 1 → (2,5)(3,2)(1,1). Six numbers instead of eight, and you can rebuild the exact row, so nothing is lost." },
+      { q: "Which map would shrink the MOST with run-length encoding or a quadtree?", o: ["A noisy map where every cell differs from its neighbours", "A land-cover map with big lakes and fields", "Both shrink the same", "Neither can be compressed"], a: 1, why: "Both methods store long runs or large uniform blocks as a single entry. Noisy data has no runs, so it barely shrinks." }
+    ] },
+  { id: "E", ic: "⛰️", name: "Terrain", clue: "A TIN (triangulated irregular network) joins x,y,z points into triangles. It puts many points where the terrain changes and few where it's flat, and keeps sharp edges (breaklines). A DEM raster stores one elevation per cell on an even grid.",
+    intro: "Hill 42 is stored as a DEM (an elevation raster) and as a TIN. Switch views and compare where each one spends its data.",
+    qs: [
+      { q: "Why does the TIN use only a few big triangles on the flat valley floor?", o: ["The sensor broke there", "Flat ground can be described with very few points", "Flat ground is less important", "Triangles can't be small"], a: 1, why: "A TIN is irregular: it adds points only where the surface changes. A DEM spends the same number of cells on flat and steep ground alike." },
+      { q: "An engineer needs the exact top edge of a levee and the river bank (breaklines) for a small site. Which keeps those edges sharpest?", o: ["A 30 m DEM", "A TIN", "A land-cover quadtree", "A .dbf table"], a: 1, why: "A TIN can place triangle edges exactly along breaklines, so ridges and banks stay sharp. A coarse grid smears them across cells." },
+      { q: "Each point in a TIN stores…", o: ["x, y and z (elevation)", "Only a colour", "A cell size", "A ZIP code"], a: 0, why: "Every TIN node has a location (x, y) and a height (z). Each triangle face then has its own slope and aspect." }
+    ] },
+  { id: "F", ic: "⚡", name: "Find It Fast", clue: "An index lets the GIS skip data that can't match, like the index in a book. Spatial indexes (grids, quadtrees, R-trees) work by location; attribute indexes work by value. Same answer, much less checking. Index the fields you join on.",
+    intro: "Riverbend has 48 fire hydrants. Click the map to search for hydrants near that spot. Run one search with the spatial index OFF and one with it ON.",
+    qs: [
+      { q: "With the spatial index ON, what changed?", o: ["It found different hydrants", "The hydrants moved onto the grid lines", "It checked far fewer hydrants but found the same ones", "The file became smaller"], a: 2, why: "The index only looks inside grid cells that overlap the search area. Everything else is skipped, so the answer is the same but found faster." },
+      { q: "Searching 2 million address records by <code>Street_Name</code> takes ages. Best fix?", o: ["Add an attribute index on Street_Name", "Convert the addresses to a raster", "Rename the field “Street Name”", "Re-project the data"], a: 0, why: "An attribute index sorts the values so the database can jump straight to the matching rows. It also speeds up joins on that field." }
+    ] }
+];
+
+/* ---------- Explain topics ---------- */
+const TOPICS = [
+  { id: "rv", t: "🔲 Raster vs Vector", html: `
+    <p>A <strong>data structure</strong> is how a GIS organises information about the real world so a computer can store, search and analyse it. GIS has two core models.</p>
+    <div class="tbl"><table class="cmp"><thead><tr><th></th><th>Raster</th><th>Vector</th></tr></thead><tbody>
+      <tr><td><strong>Built from</strong></td><td>A grid of square cells. Each cell holds one number (a value or a code like 1 = pavement).</td><td>Points (x,y). Points join into lines, and lines close into polygons.</td></tr>
+      <tr><td><strong>Stored as</strong></td><td>Coordinate system + origin (usually the top-left corner) + cell size + a list of values.</td><td>Coordinates + an attribute table. Each row is an object (a feature).</td></tr>
+      <tr><td><strong>Best for</strong></td><td>Continuous data across an area: elevation, temperature, imagery, land cover.</td><td>Discrete objects with clear edges: hydrants, roads, parcels, rivers.</td></tr>
+      <tr><td><strong>Detail</strong></td><td>Set by cell size. A 10 m cell covers 100 m². Halve the size → 4× the cells.</td><td>Exact edges. Precision comes from the coordinates.</td></tr>
+      <tr><td><strong>Re-projection</strong></td><td><em>Lossy:</em> cells are resampled onto a new grid.</td><td>Precise: every vertex is recalculated.</td></tr>
+      <tr><td><strong>Tools</strong></td><td>Map algebra: add or multiply rasters like numbers, e.g. <code>Elevation &gt; 500</code>.</td><td>Select by attributes, overlay of polygons (precise but harder maths).</td></tr>
+    </tbody></table></div>
+    <div class="key">🗝️ <strong>“Raster is faster, vector is corrector.”</strong> It's a rough saying, not a rule. The vector <em>object model</em> turns real things into objects: you choose their attributes, collect them in a data table, add location, and you get a <em>feature class</em>. Multi-band rasters stack several grids (like red, green and blue) so each cell holds several values.</div>`,
+    check: { q: "Two rasters have 10 m and 15 m cells. Why is overlaying them tricky?", o: ["Their cells don't line up, so the GIS must decide which values overlap", "Rasters can't be overlaid", "The 15 m raster has no values", "Vector tools can't open them"], a: 0, why: "Misaligned cells can touch several cells in the other raster. The GIS has to choose a rule (cell centre, majority, …), and that choice changes the result." } },
+  { id: "dt", t: "🔢 Attribute types", html: `
+    <p>Data types <strong>group, store and define what you can do</strong> with information. 5 × 5 = 25, but Basketball × Soccer isn't defined. Types matter in the Field Calculator, map algebra, definition queries and programming.</p>
+    <div class="tbl"><table class="cmp"><thead><tr><th>Type</th><th>Holds</th><th>Range / note</th><th>Example</th></tr></thead><tbody>
+      <tr><td>Short integer</td><td>Whole numbers</td><td>−32,768 to 32,767 (16 bits)</td><td>Slope 0–90°</td></tr>
+      <tr><td>Long integer</td><td>Whole numbers</td><td>about ±2.1 billion (32 bits)</td><td>Population</td></tr>
+      <tr><td>Float (single)</td><td>Decimals</td><td>±10<sup>38</sup>, less precise</td><td>Temperature</td></tr>
+      <tr><td>Double</td><td>Decimals</td><td>±10<sup>308</sup>, more precise, twice the storage</td><td>Water depth 2.37</td></tr>
+      <tr><td>Text (string)</td><td>Letters, codes</td><td>No maths on numbers stored as text</td><td>ZIP “02134”</td></tr>
+      <tr><td>Date</td><td>Dates and times</td><td>Sortable and filterable</td><td>2016-01-14</td></tr>
+    </tbody></table></div>
+    <div class="key">❓ <strong>Null vs zero:</strong> Null = “we don't know”. Zero = “we know, and it's zero”. Nulls appear when you add a new field, and they can break calculations.<br>
+    🏷️ <strong>Naming fields:</strong> be consistent and descriptive, never use spaces. Use <code>Field_Name</code> (underscores) or <code>FieldName</code> (camel case). Avoid reserved words like <code>Date</code>.</div>`,
+    check: { q: "Best type for a field storing the number of floors in a building (1–120)?", o: ["Double", "Short integer", "Text", "Date"], a: 1, why: "Small whole numbers → short integer. It's accurate and uses the least space." } },
+  { id: "rel", t: "🔗 Relational tables", html: `
+    <p>A <strong>relational database</strong> (RDBMS, such as Microsoft Access, MySQL or SQL Server) stores data in several tables that relate through common attributes. You query them with <strong>SQL</strong>, the same language as ArcGIS <em>Select by Attributes</em> and definition queries.</p>
+    <ul>
+      <li><span class="pk">Primary key</span>: uniquely identifies each record. Usually an auto-generated number that means nothing to people, so it never changes.</li>
+      <li><span class="fk">Foreign key</span>: a field that holds the primary key of a record in another (foreign) table, e.g. <code>Site_ID</code> in Observations → <code>ID</code> in Sites.</li>
+    </ul>
+    <div class="tbl"><table class="cmp"><thead><tr><th>Join type</th><th>Meaning</th><th>Example</th></tr></thead><tbody>
+      <tr><td>One-to-one</td><td>Each record matches exactly one record</td><td>County → its population record</td></tr>
+      <tr><td>One-to-many</td><td>One record matches many</td><td>Site → many visits; zoning code → many parcels</td></tr>
+      <tr><td>Many-to-many</td><td>Many match many, through an in-between table</td><td>Observers ↔ Observations via <code>Observers_Observations</code></td></tr>
+    </tbody></table></div>
+    <div class="key">🧭 <strong>Why split tables?</strong> Repeating the same site on every visit causes overlapping duplicates and error-prone edits. Split by theme, then join when needed. Joins also let you build on third-party data, e.g. using NHDPlus river IDs as foreign keys.<br>
+    🛠️ <strong>In ArcGIS:</strong> a <em>join</em> appends matching attributes. When many records attach to one feature, ArcGIS uses a <em>relate</em> instead, so the shape isn't duplicated. A <em>relationship class</em> makes a relate permanent inside a geodatabase. Tip: plural table names (<code>Sites</code>) and singular + ID for keys (<code>Site_ID</code>).</div>`,
+    check: { q: "In ArcGIS, attaching MANY observation records to ONE site feature is done with a…", o: ["Relate", "Re-projection", "Pyramid", "Feature dataset"], a: 0, why: "A plain join would have to duplicate the site's shape, so ArcGIS uses a relate (or a permanent relationship class)." } },
+  { id: "fmt", t: "💾 Storage formats", html: `
+    <p>The same features can be saved in different <strong>containers</strong>. Each has trade-offs.</p>
+    <div class="tbl"><table class="cmp"><thead><tr><th></th><th>Shapefile</th><th>Personal geodatabase</th><th>File geodatabase</th><th>GeoPackage</th></tr></thead><tbody>
+      <tr><td><strong>On disk</strong></td><td>Many files: <code>.shp .shx .dbf .prj</code>…</td><td>One <code>.mdb</code> (Microsoft Access)</td><td>A <code>.gdb</code> folder of hidden files</td><td>One <code>.gpkg</code> (SQLite)</td></tr>
+      <tr><td><strong>Size limit</strong></td><td>2 GB per file</td><td>2 GB total</td><td>No practical limit</td><td>No practical limit</td></tr>
+      <tr><td><strong>Field names</strong></td><td>10 characters max</td><td>Long</td><td>Long</td><td>Long</td></tr>
+      <tr><td><strong>Nulls / relationships</strong></td><td>No / No</td><td>Yes / Yes</td><td>Yes / Yes</td><td>Yes / limited</td></tr>
+      <tr><td><strong>Status</strong></td><td>Old, but everyone reads it</td><td>Legacy (can't create in ArcGIS Pro)</td><td>Esri's main format</td><td>Open OGC standard, modern exchange</td></tr>
+    </tbody></table></div>
+    <p><strong>Shapefile parts:</strong> <code>.shp</code> geometry · <code>.shx</code> shape index · <code>.dbf</code> attribute table (old dBase format) · <code>.prj</code> projection · optional <code>.sbn/.sbx</code> spatial index, <code>.cpg</code> text encoding, <code>.xml</code> metadata. Send them all, zipped together.</p>
+    <div class="key">📁 <strong>Geodatabase extras:</strong> <em>feature datasets</em> force every feature class inside to share one coordinate system · <em>attachments</em> store photos on features · <em>compact</em> reclaims space after deletions · auto-updated <code>Shape_Length</code>/<code>Shape_Area</code>. Never add or delete files inside a <code>.gdb</code> folder in Windows. Query syntax differs: file gdb <code>NAME</code>, personal gdb <code>[NAME]</code>, shapefile <code>"NAME"</code>.</div>`,
+    check: { q: "What's the minimum set of files that must travel together for a shapefile to open with its attributes?", o: [".shp only", ".shp, .shx and .dbf", ".dbf and .xml", ".prj only"], a: 1, why: "Geometry (.shp), shape index (.shx) and attributes (.dbf) are required. Add .prj so it lands in the right place." } },
+  { id: "tin", t: "⛰️ TINs", html: `
+    <p>A <strong>TIN (Triangulated Irregular Network)</strong> is a <em>vector</em> way to model a surface. Irregularly spaced points with x, y and z are joined into non-overlapping triangles, usually with <strong>Delaunay triangulation</strong> (which avoids long skinny triangles).</p>
+    <ul>
+      <li>Stored as <strong>nodes</strong> (points with z), <strong>edges</strong> and <strong>faces</strong> (triangles). Each face has a slope and an aspect.</li>
+      <li><strong>Efficient:</strong> many points where the terrain is rough, few where it's flat.</li>
+      <li><strong>Breaklines</strong> such as ridges, stream banks, cliffs and road edges are kept exactly.</li>
+    </ul>
+    <div class="tbl"><table class="cmp"><thead><tr><th></th><th>TIN</th><th>DEM (elevation raster)</th></tr></thead><tbody>
+      <tr><td>Spacing</td><td>Irregular, adapts to the terrain</td><td>Regular grid, same everywhere</td></tr>
+      <tr><td>Best for</td><td>Small, high-accuracy sites: engineering, cut-and-fill volumes, LiDAR surveys</td><td>Large areas, map algebra, flood and slope models</td></tr>
+      <tr><td>Sharp features</td><td>Exact</td><td>Smoothed by the cell size</td></tr>
+    </tbody></table></div>`,
+    check: { q: "Which statement about TINs is TRUE?", o: ["They use square cells", "Triangles are smaller where the terrain changes quickly", "They can't store elevation", "They're the same as a quadtree"], a: 1, why: "The irregular point spacing lets a TIN use small triangles on complex ground and large ones on flat ground." } },
+  { id: "qt", t: "🗜️ Storage & quadtrees", html: `
+    <p><strong>Efficient storage</strong> means representing the same information with fewer bytes.</p>
+    <ul>
+      <li><strong>Choose the right type:</strong> a short integer uses half the space of a long integer.</li>
+      <li><strong>Run-length encoding (RLE):</strong> store each row as (value, count): <code>1 1 1 1 3 3 3 2</code> → <code>(1,4)(3,3)(2,1)</code>. Great for categories, poor for noisy data.</li>
+      <li><strong>Quadtree:</strong> split the raster into 4 quadrants (NW, NE, SW, SE), and split again only where a block isn't uniform. Big uniform areas become one block. The same idea organises web map tiles: each zoom level splits every tile into 4.</li>
+      <li><strong>Lossless vs lossy compression:</strong> lossless (LZW, Deflate, RLE) rebuilds every value exactly. Lossy (JPEG, JPEG 2000, MrSID) throws away detail. That's fine for photos, never for category codes.</li>
+      <li><strong>Pyramids:</strong> extra lower-resolution copies of a raster so it draws fast when zoomed out.</li>
+      <li><strong>Vector topology:</strong> “spaghetti” data stores a shared border twice. Topological data stores it once and knows which polygon lies on each side.</li>
+    </ul>`,
+    check: { q: "Why is JPEG a bad choice for compressing a land-cover raster (1 = pavement, 2 = water, 3 = vegetation)?", o: ["JPEG is lossy, so it can change the category codes", "JPEG files are always bigger", "JPEG can't store numbers", "Land cover can't be compressed"], a: 0, why: "Lossy compression nudges values. A 2 (water) could turn into a 3 (vegetation). Use lossless compression for categorical data." } },
+  { id: "idx", t: "⚡ Indexing & referencing", html: `
+    <h3 style="margin-top:0">Efficient retrieval and display</h3>
+    <ul>
+      <li><strong>Spatial index:</strong> a grid, quadtree or R-tree (nested bounding rectangles) records which features sit in which area. Searches first check boxes, then exact shapes only for the candidates. Geodatabases build spatial indexes automatically.</li>
+      <li><strong>Attribute index:</strong> speeds up queries and joins on a field. Index your join fields, e.g. <code>COMID</code>.</li>
+      <li><strong>Fast display:</strong> pyramids, tile caches and scale-dependent drawing.</li>
+    </ul>
+    <h3>Digital referencing: tying data to Earth</h3>
+    <ul>
+      <li><strong>Coordinate systems:</strong> geographic (latitude/longitude on a datum like WGS84 or NAD83) or projected (flat x,y in metres, like UTM). Often written as EPSG codes, e.g. <code>EPSG:4326</code>.</li>
+      <li><strong>Raster referencing:</strong> origin + cell size + rotation. A <em>world file</em> (<code>.tfw</code>, <code>.jgw</code>) holds those 6 numbers; a GeoTIFF stores them inside the file.</li>
+      <li><strong>Georeferencing:</strong> match control points on a scanned map to known coordinates so it lines up.</li>
+      <li><strong>Re-projecting:</strong> vectors stay precise. Rasters are resampled (nearest neighbour for categories, bilinear for continuous values), which is lossy.</li>
+    </ul>`,
+    check: { q: "A world file (.tfw) next to an image stores…", o: ["The image's origin, cell size and rotation so it lands in the right place", "The image's colours", "A list of field names", "The image's password"], a: 0, why: "Six numbers (cell size x, two rotation terms, cell size y, and the upper-left x and y) georeference the grid." } },
+  { id: "io", t: "🤝 Interoperability", html: `
+    <p><strong>Interoperability</strong> is the ability of different systems to exchange and use the same data. It's hard because of proprietary formats, different data models, different coordinate systems and different meanings for the same field.</p>
+    <div class="tbl"><table class="cmp"><thead><tr><th>Open format / standard</th><th>Used for</th></tr></thead><tbody>
+      <tr><td>GeoPackage <code>.gpkg</code></td><td>Vector + raster + tables in one open SQLite file</td></tr>
+      <tr><td>GeoJSON</td><td>Vector features as text for the web (latitude/longitude)</td></tr>
+      <tr><td>KML / KMZ</td><td>Google Earth and sharing with the public</td></tr>
+      <tr><td>GeoTIFF / Cloud-Optimized GeoTIFF</td><td>Georeferenced rasters</td></tr>
+      <tr><td>LAS / LAZ</td><td>LiDAR point clouds</td></tr>
+      <tr><td>CSV with x,y columns</td><td>Simple points anyone can open</td></tr>
+      <tr><td>Shapefile</td><td>The old universal exchange format (mind its limits)</td></tr>
+    </tbody></table></div>
+    <ul>
+      <li><strong>Standards bodies:</strong> the Open Geospatial Consortium (OGC) and ISO TC 211. Their web services include <strong>WMS</strong> (map images), <strong>WFS</strong> (features) and <strong>WCS</strong> (coverages).</li>
+      <li><strong>Translators:</strong> GDAL/OGR is the open library behind most GIS software, including QGIS and ArcGIS.</li>
+      <li><strong>Conversions lose things:</strong> vector → raster gives stair-step edges, raster → vector gives jagged lines, and shapefile export shortens field names to 10 characters and drops nulls. Good <strong>metadata</strong> helps others understand the data.</li>
+    </ul>`,
+    check: { q: "A partner uses QGIS, not ArcGIS. Which format is the safest single file to send?", o: ["Personal geodatabase (.mdb)", "GeoPackage (.gpkg)", "Only the .dbf file", "A .lock file"], a: 1, why: "GeoPackage is an open OGC standard that QGIS, ArcGIS and most other tools read and write." } }
+];
+const MISSION_ANSWER = "There's no single best structure. A good data architect <strong>matches the structure to the data and the question</strong>: rasters for continuous surfaces, vectors for exact features, TINs for detailed terrain. Use the right <strong>data types</strong>, split data into <strong>related tables</strong> linked by keys, store it in a robust container (file geodatabase or GeoPackage), <strong>compress</strong> and <strong>index</strong> it so it stays small and fast, give it a clear <strong>coordinate reference</strong>, and choose <strong>open formats</strong> when sharing.";
+
+/* ---------- Elaborate cases ---------- */
+const CASES = [
+  { ic: "🌊", s: "The flood model needs ground height at <strong>every</strong> location in the county, and will multiply it by rainfall grids.", q: "How should Riverbend store the ground height?", o: ["Vector points at 3 bridges", "A raster DEM (elevation grid)", "A shapefile of road names", "A one-to-one join"], a: 1, why: "Elevation is continuous and covers the whole area, and multiplying grids is map algebra. That's a job for a raster DEM." },
+  { ic: "🏗️", s: "Engineers are designing a new levee. They have dense survey points and need the exact top edge of the embankment and the river bank.", q: "Which surface model?", o: ["A TIN built from the survey points", "A 30 m raster DEM", "A land-cover quadtree", "A text field of heights"], a: 0, why: "A TIN keeps breaklines like levee tops and banks exactly, and suits small, high-accuracy engineering sites." },
+  { ic: "🏠", s: "The tax assessor needs the exact property lines and owner details for 40,000 lots.", q: "Which structure?", o: ["A 10 m raster", "A TIN", "Vector polygons with an attribute table", "A multi-band image"], a: 2, why: "Parcels are discrete objects with precise boundaries and many attributes: classic vector polygons." },
+  { ic: "📈", s: "Twelve river gauges record depth every day. A gauge's location never changes.", q: "Best table design?", o: ["One table that repeats the location on every daily row", "A Gauges table (ID, Shape) plus a Readings table with Gauge_ID (one-to-many)", "A new shapefile for each day", "Store the readings in the gauge's name"], a: 1, why: "Store each gauge once and link thousands of readings by a foreign key. No duplicated locations, and easy to query." },
+  { ic: "🤝", s: "A partner organisation uses QGIS. You need to send roads, parcels and gauges in one tidy file that keeps long field names and nulls.", q: "Which format?", o: ["Personal geodatabase (.mdb)", "Just the .shp files", "A screenshot of the map", "GeoPackage (.gpkg)"], a: 3, why: "GeoPackage is a single, open OGC file that most GIS software reads, without the shapefile's limits." },
+  { ic: "📦", s: "The old county system only accepts shapefiles. You export the parcels layer.", q: "What do you send?", o: ["All the parcels.* files (.shp, .shx, .dbf, .prj…) zipped together", "Just parcels.shp", "Just parcels.dbf", "The .lock file"], a: 0, why: "A shapefile is a family of files. Without .shx and .dbf it won't open, and without .prj it won't line up. Also warn them that field names were cut to 10 characters." },
+  { ic: "🗜️", s: "The land-cover raster (1 = pavement, 2 = water, 3 = vegetation) is too big to email. It's mostly large lake and forest blocks.", q: "How do you shrink it safely?", o: ["Save it as a heavily compressed JPEG", "Delete all the water cells", "Use lossless compression such as run-length encoding or a quadtree", "Change the cell size from 10 m to 1 km"], a: 2, why: "Big uniform areas compress very well, and lossless methods keep every category code exact. JPEG would change codes, and 1 km cells would wipe out the detail." },
+  { ic: "🗺️", s: "A scanned 1950s paper flood map doesn't line up with anything on screen.", q: "What's the fix?", o: ["Add an attribute index", "Georeference it: match control points to known coordinates (this saves a world file)", "Rename the file", "Convert it to text"], a: 1, why: "Georeferencing ties the scanned grid to real coordinates using control points such as road crossings." }
+];
+
+/* ---------- Evaluate ---------- */
+const QUIZ = [
+  { topic: "Raster cell size", q: "A raster has 30 m cells. How much ground does each cell cover?", o: ["30 m²", "90 m²", "900 m²", "3,000 m²"], a: 2, why: "30 m × 30 m = 900 m²." },
+  { topic: "Vector features", q: "A road network is best stored as…", o: ["A raster of 1 km cells", "Vector lines", "A TIN", "A single point"], a: 1, why: "Roads are discrete, connected linear features: vector lines." },
+  { topic: "Integer types", q: "Which value would NOT fit in a short integer?", o: ["90", "−400", "50,000", "32,000"], a: 2, why: "Short integers stop at 32,767. 50,000 needs a long integer." },
+  { topic: "Null values", q: "A Null in a field means…", o: ["The value is unknown or wasn't recorded", "The value is zero", "The field is text", "The record is deleted"], a: 0, why: "Null = unknown. Zero is a real measured value." },
+  { topic: "Primary keys", q: "A good primary key is…", o: ["The site's name", "The same for every row", "A decimal number like 2.37", "Unique and never changes, usually an auto-number"], a: 3, why: "It must uniquely identify each record and stay stable even when other attributes change." },
+  { topic: "Join types", q: "Each county has exactly one population record. Joining them is…", o: ["One-to-one", "One-to-many", "Many-to-many", "A spatial index"], a: 0, why: "One county ↔ one record: one-to-one." },
+  { topic: "Shapefile parts", q: "Your partner can see roads.shp on the map but there are no attributes. Which file is missing?", o: [".prj", ".xml", ".dbf", ".sbn"], a: 2, why: "The attribute table lives in the .dbf file." },
+  { topic: "TINs", q: "A TIN represents a surface with…", o: ["Square cells", "Triangles connecting x,y,z points", "Polygons of population", "A single band of colour"], a: 1, why: "Triangulated Irregular Network: triangles between irregular points that have elevation." },
+  { topic: "Quadtrees", q: "A quadtree saves space because…", o: ["Uniform areas are stored as one big block instead of many cells", "It deletes water cells", "It converts the raster to vector", "It lowers the resolution everywhere"], a: 0, why: "It only keeps splitting where values differ, so uniform blocks stay whole." },
+  { topic: "Raster re-projection", q: "Why is re-projecting a raster called “lossy”?", o: ["Rasters can't be re-projected", "It deletes the bands", "Cells are resampled onto a new grid, so values shift or change", "Only vectors lose data"], a: 2, why: "The new grid doesn't line up with the old one, so values are resampled. Some information is lost." },
+  { topic: "Spatial indexing", q: "A spatial index speeds up searches by…", o: ["Making features bigger", "Only checking features in the part of the map that could match", "Compressing colours", "Changing the coordinate system"], a: 1, why: "It skips whole areas that can't contain a match." },
+  { topic: "Interoperability", q: "Which is an open, single-file format that most GIS programs can read?", o: ["Personal geodatabase (.mdb)", "A .lock file", "An .sbn file", "GeoPackage (.gpkg)"], a: 3, why: "GeoPackage is an open OGC standard built on SQLite." }
+];
+const MODEL = "Not always. Vector stores exact edges and re-projects precisely, so it's best for discrete features like parcels, roads and hydrants. Continuous things like elevation, rainfall or imagery are better as rasters, which give every location a value and are fast for map algebra. A raster's accuracy depends on its cell size: smaller cells give more detail but more storage. The best structure depends on the data and the question.";
+
+/* =====================================================================
+   STATE
+   ===================================================================== */
+const KEY = "data-architect-v1";
+const playerName = () => { try { return localStorage.getItem("sd-player") || ""; } catch (e) { return ""; } };
+const fresh = () => ({
+  stage: "engage", unlocked: 1, xp: 0, done: {},
+  found: {}, pred: {}, guess: "", guessXp: false,
+  station: "A", q: {}, clues: {},
+  a: { i: 3, view: "raster" },
+  b: { pick: {}, checked: false, xpd: {} },
+  c: { sel: null },
+  d: { depth: 0, row: 0 },
+  e: { view: "tin" },
+  f: { idx: false, q: null, ran: {} },
+  topic: "rv", elab: 0, quizXp: {}, explainedXp: false,
+  ev: { step: 0, picks: [], text: "", reveal: false, pred2: {}, rating: 0, name: playerName(), sent: false }
+});
+let S = fresh();
+try { const raw = localStorage.getItem(KEY); if (raw) S = Object.assign(fresh(), JSON.parse(raw)); } catch (e) {}
+if (!S.ev.name) S.ev.name = playerName();
+function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+
+/* =====================================================================
+   HELPERS
+   ===================================================================== */
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+let toastTimer;
+function toast(html) { const t = $("toast"); t.innerHTML = html; t.classList.add("show"); clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove("show"), 1900); }
+function award(n, why) { S.xp += n; $("xp").textContent = S.xp; save(); toast(`+<b>${n} XP</b> ${why || ""}`); }
+function complete(id) {
+  if (S.done[id]) return;
+  S.done[id] = true;
+  S.unlocked = Math.max(S.unlocked, STAGES.findIndex(s => s.id === id) + 2);
+  save(); renderHud();
+}
+function go(id) { S.stage = id; save(); render(); window.scrollTo({ top: 0, behavior: "smooth" }); }
+function unlockAll() { S.unlocked = 5; save(); renderHud(); toast("All stages unlocked"); }
+let resetArmed = false;
+function resetAll(btn) {
+  if (!resetArmed) { resetArmed = true; btn.textContent = "Click again to reset everything"; setTimeout(() => { resetArmed = false; btn.textContent = "Reset progress"; }, 4000); return; }
+  resetArmed = false; S = fresh(); save(); render(); btn.textContent = "Reset progress";
+}
+
+/* reusable multiple-choice question with retries: first try = full XP */
+const QB = {};
+function qHTML(key, it, xp) {
+  QB[key] = Object.assign({ xp: xp || 40 }, it);
+  const st = S.q[key] || { p: [] }, solved = st.p.includes(it.a);
+  return `<div class="qq"><p class="q">${it.q}</p><div class="opts">${it.o.map((t, i) => {
+      const cls = st.p.includes(i) ? (i === it.a ? " right" : " wrong") : "";
+      return `<button class="opt${cls}" ${solved || st.p.includes(i) ? "disabled" : ""} onclick="pickQ('${key}',${i})"><b>${"ABCD"[i]}</b><span>${t}</span></button>`;
+    }).join("")}</div>
+    ${st.p.length ? (solved
+      ? `<div class="feedback"><strong>✅ ${st.p.length === 1 ? "Correct!" : "Got it."}</strong> ${it.why}</div>`
+      : `<div class="feedback bad"><strong>Not quite.</strong> ${it.hint || "Look again and try another answer."}</div>`) : ""}</div>`;
+}
+const qSolved = key => { const st = S.q[key]; return !!(st && QB[key] && st.p.includes(QB[key].a)); };
+function pickQ(key, i) {
+  const it = QB[key], st = S.q[key] || (S.q[key] = { p: [] });
+  if (st.p.includes(i) || st.p.includes(it.a)) return;
+  st.p.push(i);
+  if (i === it.a) award(st.p.length === 1 ? it.xp : 15, st.p.length === 1 ? "first try!" : "");
+  save(); render(true);
+}
+
+/* geometry */
+function pip(x, y, poly) {
+  let c = false;
+  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+    const [xi, yi] = poly[i], [xj, yj] = poly[j];
+    if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) c = !c;
+  }
+  return c;
+}
+function polyArea(p) { let a = 0; for (let i = 0, j = p.length - 1; i < p.length; j = i++) a += (p[j][0] + p[i][0]) * (p[j][1] - p[i][1]); return Math.abs(a / 2); }
+function rng(seed) { return () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; }; }
+function ramp(t) {
+  const stops = [[0, [207, 227, 181]], [.35, [168, 196, 122]], [.65, [201, 168, 107]], [1, [139, 94, 60]]];
+  t = Math.max(0, Math.min(1, t));
+  for (let i = 1; i < stops.length; i++) if (t <= stops[i][0]) {
+    const [t0, c0] = stops[i - 1], [t1, c1] = stops[i], k = (t - t0) / (t1 - t0);
+    return `rgb(${c0.map((v, j) => Math.round(v + (c1[j] - v) * k)).join(",")})`;
+  }
+  return "rgb(139,94,60)";
+}
+/* Bowyer–Watson Delaunay triangulation */
+function delaunay(pts) {
+  const P = pts.concat([[-2000, -2000], [2240, -2000], [120, 2400]]), n = pts.length;
+  const circ = t => {
+    const [a, b, c] = t.map(i => P[i]);
+    const d = 2 * (a[0] * (b[1] - c[1]) + b[0] * (c[1] - a[1]) + c[0] * (a[1] - b[1]));
+    const A = a[0] ** 2 + a[1] ** 2, B = b[0] ** 2 + b[1] ** 2, C = c[0] ** 2 + c[1] ** 2;
+    const ux = (A * (b[1] - c[1]) + B * (c[1] - a[1]) + C * (a[1] - b[1])) / d;
+    const uy = (A * (c[0] - b[0]) + B * (a[0] - c[0]) + C * (b[0] - a[0])) / d;
+    return [ux, uy, (a[0] - ux) ** 2 + (a[1] - uy) ** 2];
+  };
+  let tris = [[n, n + 1, n + 2]];
+  for (let i = 0; i < n; i++) {
+    const p = P[i], bad = [], good = [];
+    tris.forEach(t => { const [ux, uy, r2] = circ(t); ((p[0] - ux) ** 2 + (p[1] - uy) ** 2 < r2 ? bad : good).push(t); });
+    const edges = [];
+    bad.forEach(t => [[t[0], t[1]], [t[1], t[2]], [t[2], t[0]]].forEach(e => {
+      const k = edges.findIndex(f => (f[0] === e[1] && f[1] === e[0]) || (f[0] === e[0] && f[1] === e[1]));
+      if (k >= 0) edges.splice(k, 1); else edges.push(e);
+    }));
+    tris = good.concat(edges.map(e => [e[0], e[1], i]));
+  }
+  return tris.filter(t => t.every(i => i < n));
+}
+const zHill = (x, y) => 8 + 72 * Math.exp(-((x - 165) ** 2 + (y - 110) ** 2) / (2 * 30 ** 2));
+const TIN_PTS = (() => {
+  const p = [[0, 0], [240, 0], [0, 240], [240, 240], [55, 50], [45, 178], [100, 118], [122, 18], [112, 226], [18, 108]];
+  p.push([165, 110]);
+  for (let k = 0; k < 6; k++) { const a = k * Math.PI / 3; p.push([165 + 22 * Math.cos(a), 110 + 22 * Math.sin(a)]); }
+  for (let k = 0; k < 8; k++) { const a = Math.PI / 8 + k * Math.PI / 4; p.push([165 + 50 * Math.cos(a), 110 + 50 * Math.sin(a)]); }
+  return p.map(([x, y]) => [Math.round(x * 10) / 10, Math.round(y * 10) / 10]);
+})();
+const TIN_TRIS = delaunay(TIN_PTS);
+const HYD = (() => { const r = rng(11); return Array.from({ length: 48 }, () => [12 + r() * 216, 12 + r() * 216]); })();
+
+/* quadtree blocks for the land-cover grid */
+function qtBlocks(maxDepth) {
+  const out = [];
+  (function split(r, c, size, depth) {
+    const v = QG[r][c];
+    let uniform = true;
+    for (let i = r; i < r + size && uniform; i++) for (let j = c; j < c + size; j++) if (QG[i][j] !== v) { uniform = false; break; }
+    if (uniform || size === 1 || depth === maxDepth) { out.push({ r, c, size, uniform }); return; }
+    const h = size / 2;
+    split(r, c, h, depth + 1); split(r, c + h, h, depth + 1); split(r + h, c, h, depth + 1); split(r + h, c + h, h, depth + 1);
+  })(0, 0, 8, 0);
+  return out;
+}
+function rle(row) { const out = []; row.forEach(v => { const l = out[out.length - 1]; if (l && l[0] === v) l[1]++; else out.push([v, 1]); }); return out; }
+
+/* =====================================================================
+   RENDER
+   ===================================================================== */
+function renderHud() {
+  $("stages").innerHTML = STAGES.map((s, i) => `<button class="st${S.done[s.id] ? " done" : ""}" ${S.stage === s.id ? 'aria-current="step"' : ""} ${i >= S.unlocked ? "disabled" : ""} onclick="go('${s.id}')">${s.n}</button>`).join("");
+  $("xp").textContent = S.xp;
+}
+function render(keepScroll) {
+  renderHud();
+  ({ engage: renderEngage, explore: renderExplore, explain: renderExplain, elaborate: renderElaborate, evaluate: renderEvaluate })[S.stage]();
+}
+
+/* ---------------- 1. ENGAGE ---------------- */
+function renderEngage() {
+  const nFound = Object.keys(S.found).length, predsDone = PREDS.every((_, i) => S.pred[i]);
+  const cell = ([txt, p], tag, r, c) => {
+    const st = p && S.found[p] ? " hit" : "";
+    return `<${tag} tabindex="0" class="${st.trim()}" onclick="spot('${p || ""}',this)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click()}">${esc(txt)}</${tag}>`;
+  };
+  $("stage").innerHTML = `
+    <header>
+      <div class="eyebrow">GIS DATA STRUCTURES • ENGAGE</div>
+      <h1>🌊 Mission: Riverbend's Data Mess</h1>
+      <p class="subtitle">Last spring the Riverbend River flooded. Now the city wants a proper GIS, and you've just been hired as its Data Architect.</p>
+    </header>
+    <section class="bridge"><span>📞</span><div><strong>The mayor's question</strong>
+      <p>“Which homes sit within 100 m of the river <em>and</em> below 5 m elevation?” Nobody could answer quickly. The city's data lives in a messy spreadsheet, a scanned paper map and a folder of random files. Before you design anything, find out what's wrong.</p></div></section>
+    <section class="panel">
+      <h2>🔍 Spot the problems</h2>
+      <p class="sub">Click every cell or column name that would cause trouble in a GIS. Find at least ${NEED_FOUND} of the ${Object.keys(PROBLEMS).length} problems. <span class="count">${nFound} found</span></p>
+      <div class="sheet"><div class="fname">📗 Riverbend_Flood_Data_FINAL_v3.xlsx</div>
+        <table><thead><tr>${MESS_HEAD.map((h, c) => cell(h, "th", -1, c)).join("")}</tr></thead>
+        <tbody>${MESS_ROWS.map((row, r) => `<tr>${row.map((v, c) => cell(v, "td", r, c)).join("")}</tr>`).join("")}</tbody></table></div>
+      <p class="need" id="spotmsg" aria-live="polite"></p>
+      <div class="found">${Object.keys(PROBLEMS).filter(p => S.found[p]).map(p => `<div>${PROBLEMS[p]}</div>`).join("")}</div>
+      ${nFound >= 2 && nFound < Object.keys(PROBLEMS).length ? `<p class="muted" style="margin-top:12px"><button class="btn ghost small" onclick="revealAll()">Show the ones I missed</button></p>` : ""}
+    </section>
+    ${nFound >= NEED_FOUND ? `
+    <section class="panel">
+      <h2>🧠 Make your predictions</h2>
+      <p class="sub">No looking anything up. You'll come back to these at the end.</p>
+      ${PREDS.map((p, i) => `<div class="pred"><p>${i + 1}. ${p.s}</p><div class="seg3">${["Agree", "Disagree", "Not sure"].map(o => `<button aria-pressed="${S.pred[i] === o}" onclick="setPred(${i},'${o}')">${o}</button>`).join("")}</div></div>`).join("")}
+    </section>` : ""}
+    ${nFound >= NEED_FOUND && predsDone ? `
+    <section class="panel">
+      <h2>🎯 Your mission question</h2>
+      <p class="big-q">${MISSION_Q}</p>
+      <p class="sub">Write your first idea. It's fine to be unsure: you'll answer it properly at the end.</p>
+      <textarea placeholder="My first idea…" oninput="S.guess=this.value;save();$('engo').disabled=this.value.trim().length<10">${esc(S.guess)}</textarea>
+      <button class="btn wide" id="engo" ${S.guess.trim().length < 10 ? "disabled" : ""} onclick="finishEngage()">Start the lab →</button>
+    </section>` : ""}`;
+}
+function spot(p, el) {
+  if (!p) { const m = $("spotmsg"); m.textContent = "✔️ That one looks fine. Keep looking."; el.classList.add("ok"); return; }
+  if (S.found[p]) return;
+  S.found[p] = true; award(10, "problem found");
+  render(true);
+}
+function revealAll() { Object.keys(PROBLEMS).forEach(p => S.found[p] = true); save(); render(true); }
+function setPred(i, o) { if (!S.pred[i]) award(5, "prediction"); S.pred[i] = o; save(); render(true); }
+function finishEngage() { if (!S.guessXp) { S.guessXp = true; award(20, "for your first idea"); } complete("engage"); go("explore"); }
+
+/* ---------------- 2. EXPLORE ---------------- */
+const stationOf = id => STATIONS.find(s => s.id === id);
+function extraDone(id) {
+  if (id === "B") return FIELDS.every((f, i) => S.b.pick[i] === f.a) && S.b.checked;
+  if (id === "F") return !!(S.f.ran.on && S.f.ran.off);
+  return true;
+}
+const stationSolved = s => extraDone(s.id) && s.qs.every((_, i) => qSolved(s.id + i));
+function renderExplore() {
+  const s = stationOf(S.station);
+  s.qs.forEach((q, i) => QB[s.id + i] = Object.assign({ xp: 40 }, q));
+  STATIONS.forEach(st => st.qs.forEach((q, i) => { if (!QB[st.id + i]) QB[st.id + i] = Object.assign({ xp: 40 }, q); }));
+  STATIONS.forEach(st => { if (stationSolved(st) && !S.clues[st.id]) { S.clues[st.id] = true; award(30, "clue unlocked: " + st.name); } });
+  const allDone = STATIONS.every(st => S.clues[st.id]);
+  $("stage").innerHTML = `
+    <header>
+      <div class="eyebrow">GIS DATA STRUCTURES • EXPLORE</div>
+      <h1>🧪 The Data Lab</h1>
+      <p class="subtitle">Six lab stations, six ways to store Riverbend. Experiment first, then answer each station's questions to unlock its clue.</p>
+    </header>
+    <div class="tabs">${STATIONS.map(st => `<button class="tab${S.clues[st.id] ? " solved" : ""}" aria-pressed="${st.id === S.station}" onclick="S.station='${st.id}';save();render()"><span class="ic">${st.ic}</span>${st.name}</button>`).join("")}</div>
+    <div class="lab">
+      <section class="panel">
+        <h2>${s.ic} Station ${s.id}: ${s.name}</h2>
+        <p class="sub">${s.intro}</p>
+        ${stationControls(s.id)}
+        <div class="viz" id="viz"></div>
+      </section>
+      <div>
+        <section class="panel">
+          <h2>📝 Station questions</h2>
+          ${stationNeeds(s.id)}
+          ${s.qs.map((q, i) => qHTML(s.id + i, q)).join("")}
+          ${S.clues[s.id] ? `<div class="say"><strong>🔑 Clue unlocked:</strong> ${s.clue}</div>` : ""}
+        </section>
+        <section class="panel clues"><h3>🗒️ Clue notebook (${Object.keys(S.clues).length}/6)</h3>
+          ${STATIONS.map(st => `<div class="clue${S.clues[st.id] ? " got" : ""}"><strong>${st.ic} ${st.name}</strong><span>${S.clues[st.id] ? st.clue : "Locked: solve this station."}</span></div>`).join("")}
+        </section>
+      </div>
+    </div>
+    ${allDone ? `<section class="panel finish"><div class="fi">🗂️</div><h2>Lab complete!</h2><p class="sub">You've tested every structure. Next, let's put names and rules to what you discovered.</p><button class="btn" onclick="complete('explore');go('explain')">Go to Explain →</button></section>` : ""}`;
+  drawViz();
+}
+function stationNeeds(id) {
+  if (id === "B") return `<p class="need">${extraDone("B") ? "✅" : "⬜"} All six field types correct (use the panel on the left)</p>`;
+  if (id === "F") return `<p class="need"><span>${S.f.ran.off ? "✅" : "⬜"} Search with index OFF</span><span>${S.f.ran.on ? "✅" : "⬜"} Search with index ON</span></p>`;
+  return "";
+}
+function stationControls(id) {
+  if (id === "A") return `<div class="ctrls">${[["raster", "Raster"], ["vector", "Vector"], ["both", "Overlay"]].map(([k, t]) => `<button class="tg" aria-pressed="${S.a.view === k}" onclick="S.a.view='${k}';save();render()">${t}</button>`).join("")}
+      <label class="slider">Cell size <input type="range" min="0" max="${CS.length - 1}" value="${S.a.i}" oninput="S.a.i=+this.value;save();drawViz()" aria-label="Cell size"><span id="csv">${CS[S.a.i]} m</span></label></div>`;
+  if (id === "D") return `<div class="ctrls"><button class="tg" onclick="S.d.depth=Math.min(3,S.d.depth+1);save();drawViz()">✂️ Split</button><button class="tg" onclick="S.d.depth=0;save();drawViz()">↺ Reset</button>
+      ${Object.entries(LC).map(([k, [c, n]]) => `<span class="muted"><span style="display:inline-block;width:12px;height:12px;border-radius:3px;background:${c};vertical-align:-1px"></span> ${k} ${n}</span>`).join("")}</div>`;
+  if (id === "E") return `<div class="ctrls">${[["dem", "DEM raster"], ["tin", "TIN"]].map(([k, t]) => `<button class="tg" aria-pressed="${S.e.view === k}" onclick="S.e.view='${k}';save();render()">${t}</button>`).join("")}</div>`;
+  if (id === "F") return `<div class="ctrls"><button class="tg" aria-pressed="${!S.f.idx}" onclick="S.f.idx=false;save();render()">Index OFF</button><button class="tg" aria-pressed="${S.f.idx}" onclick="S.f.idx=true;save();render()">Index ON (4×4 grid)</button></div>`;
+  return "";
+}
+function drawViz() {
+  const v = $("viz"); if (!v) return;
+  const id = S.station;
+  if (id === "A") v.innerHTML = vizA();
+  if (id === "B") v.innerHTML = vizB();
+  if (id === "C") v.innerHTML = vizC();
+  if (id === "D") v.innerHTML = vizD();
+  if (id === "E") v.innerHTML = vizE();
+  if (id === "F") v.innerHTML = vizF();
+}
+
+/* Station A: raster vs vector lake */
+function vizA() {
+  const cs = CS[S.a.i], n = 240 / cs, view = S.a.view;
+  if ($("csv")) $("csv").textContent = cs + " m";
+  let cells = "", cnt = 0;
+  for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) {
+    const inn = pip(c * cs + cs / 2, r * cs + cs / 2, LAKE); if (inn) cnt++;
+    if (view !== "vector") cells += `<rect x="${c * cs}" y="${r * cs}" width="${cs}" height="${cs}" fill="${inn ? "#4a90c2" : "#dfe9d6"}" stroke="#fff" stroke-width="${cs >= 10 ? .7 : .25}"/>`;
+  }
+  const pts = LAKE.map(p => p.join(",")).join(" ");
+  const poly = view === "raster" ? "" : `<polygon points="${pts}" fill="${view === "vector" ? "#4a90c2" : "none"}" stroke="${view === "vector" ? "#1d5d8c" : "#d9384a"}" stroke-width="2.5" ${view === "both" ? 'stroke-dasharray="6 4"' : ""}/>` + LAKE.map(([x, y]) => `<circle cx="${x}" cy="${y}" r="4" fill="#172033"/>`).join("");
+  const truth = polyArea(LAKE), est = cnt * cs * cs, err = (est - truth) / truth * 100;
+  const svg = `<svg viewBox="0 0 240 240" role="img" aria-label="Riverbend Lake stored as ${view}"><rect width="240" height="240" fill="#dfe9d6"/>${cells}${poly}</svg>`;
+  const rRead = `RASTER · cell size <b>${cs} m</b> · grid <b>${n} × ${n} = ${(n * n).toLocaleString()}</b> stored values<br>lake cells: ${cnt} → area ≈ <b>${est.toLocaleString()} m²</b> (error ${err >= 0 ? "+" : ""}${err.toFixed(1)}%)`;
+  const vRead = `VECTOR · <b>${LAKE.length} vertices</b> = ${LAKE.length * 2} stored numbers (x,y)<br>exact area = <b>${Math.round(truth).toLocaleString()} m²</b> · edges are exact at any zoom`;
+  return svg + `<div class="readout">${view === "vector" ? vRead : view === "raster" ? rRead : rRead + "<br>" + vRead}</div>`;
+}
+
+/* Station B: field types */
+function vizB() {
+  return `<div class="ftype">${FIELDS.map((f, i) => {
+    const pk = S.b.pick[i], st = S.b.checked && pk !== undefined ? (pk === f.a ? " right" : " wrong") : "";
+    return `<div class="frow${st}"><span class="fn">${f.f}</span><span class="ex">e.g. ${f.ex}</span>
+      <div class="ch">${TYPES.map((t, k) => `<button aria-pressed="${pk === k}" onclick="pickType(${i},${k})">${t}</button>`).join("")}</div>
+      ${st === " right" ? `<div class="why">✅ ${f.why}</div>` : st === " wrong" ? `<div class="why">❌ Not the best type. Think: whole number or decimal? How big? Will you ever do maths on it?</div>` : ""}</div>`;
+  }).join("")}</div>
+  <button class="btn wide" ${Object.keys(S.b.pick).length < FIELDS.length ? "disabled" : ""} onclick="checkTypes()">Check my field types</button>`;
+}
+function pickType(i, k) { S.b.pick[i] = k; S.b.checked = false; save(); drawViz(); }
+function checkTypes() {
+  S.b.checked = true;
+  let n = 0;
+  FIELDS.forEach((f, i) => { if (S.b.pick[i] === f.a && !S.b.xpd[i]) { S.b.xpd[i] = true; n++; } });
+  if (n) award(n * 10, `${n} field type${n > 1 ? "s" : ""} right`);
+  save(); render(true);
+}
+
+/* Station C: keys & joins */
+function vizC() {
+  const sel = S.c.sel;
+  const siteHL = id => sel && ((sel.t === "site" && sel.id === id) || (sel.t === "obs" && OBS.find(o => o[0] === sel.id)[1] === id));
+  const obsHL = o => sel && ((sel.t === "obs" && sel.id === o[0]) || (sel.t === "site" && sel.id === o[1]));
+  const key = "onkeydown=\"if(event.key==='Enter'){this.click()}\"";
+  let joined = "Click a row to see the join.";
+  if (sel) {
+    const rows = sel.t === "obs" ? [OBS.find(o => o[0] === sel.id)] : OBS.filter(o => o[1] === sel.id);
+    joined = rows.map(o => `${SITES.find(s => s[0] === o[1])[1]} ⬢ + obs ${o[0]}: depth <b>${o[2]}</b>, velocity <b>${o[3]}</b>, ${o[4]}`).join("<br>");
+    if (sel.t === "site") joined = `<b>${rows.length}</b> observation${rows.length === 1 ? "" : "s"} relate to this site:<br>` + joined;
+  }
+  return `<table class="mini"><caption>Sites (has the location)</caption><thead><tr><th class="pk">ID 🔑</th><th>Site_Name</th><th>Shape</th></tr></thead><tbody>
+    ${SITES.map(s => `<tr tabindex="0" ${key} class="${siteHL(s[0]) ? "hl" : ""}" onclick="S.c.sel={t:'site',id:${s[0]}};save();drawViz()"><td class="pk">${s[0]}</td><td>${s[1]}</td><td>⬢ point</td></tr>`).join("")}</tbody></table>
+    <div style="text-align:center;font-size:22px;margin:6px 0">⇅</div>
+    <table class="mini"><caption>Observations</caption><thead><tr><th class="pk">ID 🔑</th><th class="fk">Site_ID 🔗</th><th>Depth</th><th>Velocity</th><th>Obs_Date</th></tr></thead><tbody>
+    ${OBS.map(o => `<tr tabindex="0" ${key} class="${obsHL(o) ? "hl" : ""}" onclick="S.c.sel={t:'obs',id:${o[0]}};save();drawViz()"><td class="pk">${o[0]}</td><td class="fk">${o[1]}</td><td>${o[2]}</td><td>${o[3]}</td><td>${o[4]}</td></tr>`).join("")}</tbody></table>
+    <div class="readout">${joined}</div>`;
+}
+
+/* Station D: quadtree + RLE */
+function vizD() {
+  const cs = 30, blocks = qtBlocks(S.d.depth), full = qtBlocks(3).length;
+  let cells = "";
+  QG.forEach((row, r) => row.forEach((v, c) => {
+    cells += `<rect x="${c * cs}" y="${r * cs}" width="${cs}" height="${cs}" fill="${LC[v][0]}" stroke="#ffffff88" stroke-width=".8" onclick="S.d.row=${r};save();drawViz()" style="cursor:pointer"/>` +
+      `<text x="${c * cs + 15}" y="${r * cs + 19}" text-anchor="middle" font-size="12" font-family="Arial" fill="#172033" pointer-events="none">${v}</text>`;
+  }));
+  const bl = blocks.map(b => `<rect x="${b.c * cs + 1.5}" y="${b.r * cs + 1.5}" width="${b.size * cs - 3}" height="${b.size * cs - 3}" fill="none" stroke="${b.uniform ? "#172033" : "#d9384a"}" stroke-width="${b.uniform ? 3 : 2.5}" ${b.uniform ? "" : 'stroke-dasharray="6 4"'} pointer-events="none"/>`).join("");
+  const rowHL = `<rect x="0" y="${S.d.row * cs}" width="240" height="${cs}" fill="none" stroke="#ffd166" stroke-width="3" pointer-events="none"/>`;
+  const runs = rle(QG[S.d.row]), totalRuns = QG.reduce((s, r) => s + rle(r).length, 0);
+  const mixed = blocks.filter(b => !b.uniform).length;
+  return `<svg viewBox="0 0 240 240" role="img" aria-label="8 by 8 land cover grid">${cells}${bl}${rowHL}</svg>
+    <div class="readout">QUADTREE · level ${S.d.depth} · <b>${blocks.length}</b> blocks ${mixed ? `(<span style="color:#ff8f8f">${mixed} still mixed: press Split</span>)` : `· fully split ✔`} · raw grid: 64 cells<br>
+    RLE · row ${S.d.row + 1}: ${QG[S.d.row].join(" ")} → <b>${runs.map(r => `(${r[0]},${r[1]})`).join("")}</b> = ${runs.length * 2} numbers instead of 8<br>
+    whole grid with RLE: ${totalRuns * 2} numbers instead of 64${S.d.depth === 3 ? ` · quadtree: ${full} blocks` : ""}</div>`;
+}
+
+/* Station E: DEM vs TIN */
+function vizE() {
+  let body = "", read;
+  if (S.e.view === "dem") {
+    for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) {
+      const z = zHill(c * 30 + 15, r * 30 + 15);
+      body += `<rect x="${c * 30}" y="${r * 30}" width="30" height="30" fill="${ramp((z - 8) / 72)}" stroke="#ffffff99" stroke-width=".8"/><text x="${c * 30 + 15}" y="${r * 30 + 19}" text-anchor="middle" font-size="10" font-family="Arial" fill="#172033">${Math.round(z)}</text>`;
+    }
+    read = `DEM · <b>8 × 8 = 64</b> elevation values (one per 30 m cell)<br>Same spacing on the flat valley (west) and the steep hill (east).`;
+  } else {
+    TIN_TRIS.forEach(t => {
+      const [a, b, c] = t.map(i => TIN_PTS[i]), cx = (a[0] + b[0] + c[0]) / 3, cy = (a[1] + b[1] + c[1]) / 3;
+      body += `<polygon points="${[a, b, c].map(p => p.join(",")).join(" ")}" fill="${ramp((zHill(cx, cy) - 8) / 72)}" stroke="#172033" stroke-width=".8" stroke-opacity=".55"/>`;
+    });
+    body += TIN_PTS.map(([x, y]) => `<circle cx="${x}" cy="${y}" r="2.6" fill="#172033"/>`).join("");
+    read = `TIN · <b>${TIN_PTS.length} points</b> (x, y, z) → <b>${TIN_TRIS.length} triangles</b><br>Points crowd onto the hill where the slope changes. The flat valley needs only a few big triangles.`;
+  }
+  return `<svg viewBox="0 0 240 240" role="img" aria-label="Hill 42 as ${S.e.view === "dem" ? "a DEM raster" : "a TIN"}">${body}</svg>
+    <p class="muted" style="text-align:center;margin:8px 0 0">Colour = elevation: <span style="color:#8aa86a">■</span> low valley → <span style="color:#8b5e3c">■</span> hilltop</p>
+    <div class="readout">${read}</div>`;
+}
+
+/* Station F: spatial index search */
+function vizF() {
+  const R = 34, q = S.f.q, idx = S.f.idx;
+  let checked = new Set(), found = new Set(), cellsSearched = [];
+  if (q) {
+    if (idx) {
+      const c0 = Math.max(0, Math.floor((q[0] - R) / 60)), c1 = Math.min(3, Math.floor((q[0] + R) / 60));
+      const r0 = Math.max(0, Math.floor((q[1] - R) / 60)), r1 = Math.min(3, Math.floor((q[1] + R) / 60));
+      for (let r = r0; r <= r1; r++) for (let c = c0; c <= c1; c++) cellsSearched.push([r, c]);
+      HYD.forEach((h, i) => { const c = Math.floor(h[0] / 60), r = Math.floor(h[1] / 60); if (r >= r0 && r <= r1 && c >= c0 && c <= c1) checked.add(i); });
+    } else HYD.forEach((_, i) => checked.add(i));
+    checked.forEach(i => { if (Math.hypot(HYD[i][0] - q[0], HYD[i][1] - q[1]) <= R) found.add(i); });
+  }
+  const grid = idx ? [60, 120, 180].map(v => `<line x1="${v}" y1="0" x2="${v}" y2="240" stroke="#1f6f6a" stroke-width="1.2"/><line x1="0" y1="${v}" x2="240" y2="${v}" stroke="#1f6f6a" stroke-width="1.2"/>`).join("") : "";
+  const hl = cellsSearched.map(([r, c]) => `<rect x="${c * 60}" y="${r * 60}" width="60" height="60" fill="#ffd166" fill-opacity=".35"/>`).join("");
+  const dots = HYD.map((h, i) => found.has(i) ? `<circle cx="${h[0]}" cy="${h[1]}" r="5" fill="#d9384a" stroke="#fff" stroke-width="1.5"/>`
+    : checked.has(i) ? `<circle cx="${h[0]}" cy="${h[1]}" r="4" fill="#fff" stroke="#e08a1e" stroke-width="2.2"/>`
+    : `<circle cx="${h[0]}" cy="${h[1]}" r="3.5" fill="#8a94a6"/>`).join("");
+  const ring = q ? `<circle cx="${q[0]}" cy="${q[1]}" r="${R}" fill="none" stroke="#172033" stroke-width="2" stroke-dasharray="5 4"/>` : "";
+  const read = q ? `SEARCH · index <b>${idx ? "ON" : "OFF"}</b>${idx ? ` · looked in ${cellsSearched.length} of 16 grid cells` : ""}<br>hydrants checked: <b>${checked.size} of 48</b> · found nearby: <b>${found.size}</b>`
+    : "Click anywhere on the map to search for hydrants near that spot.";
+  return `<svg viewBox="0 0 240 240" role="img" aria-label="Map of 48 hydrants; click to search" onclick="clickF(evt)" style="cursor:crosshair"><rect width="240" height="240" fill="#e8efe9"/>
+    <path d="M0 150 C60 130 100 175 160 150 S 220 120 240 130" fill="none" stroke="#9cc3e6" stroke-width="10"/>${hl}${grid}${dots}${ring}</svg>
+    <p class="muted" style="text-align:center;margin:8px 0 0"><span style="color:#d9384a">●</span> found · <span style="color:#e08a1e">○</span> checked, too far · <span style="color:#8a94a6">●</span> skipped</p>
+    <div class="readout">${read}</div>`;
+}
+function clickF(e) {
+  const b = e.currentTarget.getBoundingClientRect();
+  S.f.q = [(e.clientX - b.left) / b.width * 240, (e.clientY - b.top) / b.height * 240];
+  const k = S.f.idx ? "on" : "off", first = !S.f.ran[k];
+  S.f.ran[k] = true; save();
+  if (first) render(true); else drawViz();
+}
+
+/* ---------------- 3. EXPLAIN ---------------- */
+function renderExplain() {
+  TOPICS.forEach(t => { if (!QB["x" + t.id]) QB["x" + t.id] = Object.assign({ xp: 30 }, t.check); });
+  const t = TOPICS.find(x => x.id === S.topic), nDone = TOPICS.filter(x => qSolved("x" + x.id)).length;
+  $("stage").innerHTML = `
+    <header>
+      <div class="eyebrow">GIS DATA STRUCTURES • EXPLAIN</div>
+      <h1>📚 The Structure Files</h1>
+      <p class="subtitle">Here are the names and rules behind what you saw in the lab. Read each file and answer its quick check. ${nDone}/${TOPICS.length} checks done.</p>
+    </header>
+    <section class="bridge"><span>🔑</span><div><strong>The answer to our mission question</strong><p>${MISSION_ANSWER}</p></div></section>
+    <div class="etabs">${TOPICS.map(x => `<button class="etab${qSolved("x" + x.id) ? " solved" : ""}" aria-pressed="${x.id === S.topic}" onclick="S.topic='${x.id}';save();render()">${x.t}</button>`).join("")}</div>
+    <section class="panel ex-body"><h2>${t.t}</h2>${t.html}
+      <div class="check"><div class="step">QUICK CHECK</div>${qHTML("x" + t.id, t.check, 30)}
+      ${qSolved("x" + t.id) && nDone < TOPICS.length ? `<button class="btn small" onclick="nextTopic()">Next file →</button>` : ""}</div>
+    </section>
+    ${nDone === TOPICS.length ? `<section class="panel finish"><div class="fi">🎓</div><h2>All structure files checked</h2><p class="sub">Time to use it. Riverbend has real decisions waiting.</p><button class="btn" onclick="complete('explain');go('elaborate')">Go to Elaborate →</button></section>` : ""}`;
+}
+function nextTopic() {
+  const i = TOPICS.findIndex(x => x.id === S.topic);
+  const next = TOPICS.slice(i + 1).concat(TOPICS.slice(0, i)).find(x => !qSolved("x" + x.id));
+  if (next) { S.topic = next.id; save(); render(); window.scrollTo({ top: 0, behavior: "smooth" }); }
+}
+
+/* ---------------- 4. ELABORATE ---------------- */
+function renderElaborate() {
+  CASES.forEach((c, i) => { if (!QB["c" + i]) QB["c" + i] = Object.assign({ xp: 50 }, c); });
+  const i = S.elab, c = CASES[i], nDone = CASES.filter((_, k) => qSolved("c" + k)).length;
+  const dot = k => { const st = S.q["c" + k]; return k === i ? "on" : st && st.p.includes(CASES[k].a) ? (st.p.length === 1 ? "ok" : "meh") : ""; };
+  $("stage").innerHTML = `
+    <header>
+      <div class="eyebrow">GIS DATA STRUCTURES • ELABORATE</div>
+      <h1>🏙️ Riverbend Case Files</h1>
+      <p class="subtitle">Eight real decisions for the city. Choose the structure, format or fix that fits best. First-try answers earn the most XP.</p>
+    </header>
+    <section class="panel">
+      <div class="dots">${CASES.map((_, k) => `<span class="${dot(k)}" title="Case ${k + 1}"></span>`).join("")}</div>
+      <div class="step" style="text-align:center">CASE ${i + 1} OF ${CASES.length}</div>
+      <div class="case-ic">${c.ic}</div>
+      <p class="story">${c.s}</p>
+      ${qHTML("c" + i, c, 50)}
+      <div class="row">
+        ${i > 0 ? `<button class="btn ghost" onclick="S.elab--;save();render()">← Previous</button>` : ""}
+        ${qSolved("c" + i) && i < CASES.length - 1 ? `<button class="btn" onclick="S.elab++;save();render()">Next case →</button>` : ""}
+      </div>
+    </section>
+    ${nDone === CASES.length ? `<section class="panel finish"><div class="fi">🏅</div><h2>All cases solved</h2><p class="sub">Riverbend's GIS is designed. One last step: show what you know.</p><button class="btn" onclick="complete('elaborate');go('evaluate')">Go to Evaluate →</button></section>` : ""}`;
+}
+
+/* ---------------- 5. EVALUATE ---------------- */
+const EV_TOTAL = QUIZ.length + 3;
+function renderEvaluate() {
+  const E = S.ev;
+  let body;
+  if (E.step < QUIZ.length) {
+    const it = QUIZ[E.step], picked = E.picks[E.step], done = picked !== undefined && picked !== null;
+    body = `<div class="step">QUESTION ${E.step + 1} OF ${QUIZ.length}</div><p class="q">${it.q}</p>
+      <div class="opts">${it.o.map((t, i) => `<button class="opt${done ? (i === it.a ? " right" : i === picked ? " wrong" : "") : ""}" ${done ? "disabled" : ""} onclick="evPick(${i})"><b>${"ABCD"[i]}</b><span>${t}</span></button>`).join("")}</div>
+      ${done ? `<div class="feedback${picked === it.a ? "" : " bad"}"><strong>${picked === it.a ? "✅ Correct." : "Not quite."}</strong> ${it.why}</div>
+        <button class="btn wide" onclick="S.ev.step++;save();renderEvaluate()">${E.step === QUIZ.length - 1 ? "Continue →" : "Next question →"}</button>` : ""}`;
+  } else if (E.step === QUIZ.length) {
+    body = `<div class="step">EXPLAIN YOUR THINKING</div>
+      <p class="q">A classmate says: <em>“Vector is always better than raster because it's more accurate.”</em> Correct or improve this statement using what you learned.</p>
+      <textarea placeholder="Write your answer here…" oninput="S.ev.text=this.value;save();const b=document.getElementById('evgo');if(b)b.disabled=this.value.trim().length<20">${esc(E.text)}</textarea>
+      ${E.reveal ? `<div class="feedback"><strong>Compare with this:</strong> ${MODEL}<p class="muted">Check yourself: did you mention <em>continuous vs discrete</em> data, <em>cell size</em>, and choosing the structure to fit the <em>question</em>?</p></div>
+        <button class="btn wide" onclick="S.ev.step++;save();renderEvaluate()">Continue →</button>`
+      : `<button class="btn wide" id="evgo" ${E.text.trim().length < 20 ? "disabled" : ""} onclick="S.ev.reveal=true;if(!S.explainedXp){S.explainedXp=true;award(50,'for explaining')}renderEvaluate()">Compare my answer</button>`}`;
+  } else if (E.step === QUIZ.length + 1) {
+    const all = PREDS.every((_, i) => E.pred2[i]);
+    body = `<div class="step">THEN VS NOW</div>
+      <p class="q">Remember your predictions from the start? Answer them again, then see how your thinking changed.</p>
+      ${PREDS.map((p, i) => `<div class="pred"><p>${i + 1}. ${p.s}</p><div class="seg3">${["Agree", "Disagree", "Not sure"].map(o => `<button aria-pressed="${E.pred2[i] === o}" onclick="S.ev.pred2[${i}]='${o}';save();renderEvaluate()">${o}</button>`).join("")}</div></div>`).join("")}
+      ${all ? `<div class="tbl" style="margin-top:16px"><table class="tv"><thead><tr><th>Statement</th><th>Then</th><th>Now</th><th>Evidence</th></tr></thead><tbody>
+        ${PREDS.map((p, i) => `<tr><td>${p.s}</td><td>${S.pred[i] || "–"}</td><td>${E.pred2[i] === p.truth ? "✅" : "🤔"} ${E.pred2[i]}</td><td><strong>${p.truth}.</strong> ${p.why}</td></tr>`).join("")}
+        </tbody></table></div>
+        ${S.guess.trim() ? `<div class="say"><strong>Your first idea for the mission question was:</strong> “${esc(S.guess)}”<br>How would you answer it now?</div>` : ""}
+        <button class="btn wide" onclick="S.ev.step++;save();renderEvaluate()">Continue →</button>` : ""}`;
+  } else if (E.step === QUIZ.length + 2) {
+    body = `<div class="step">SELF-ASSESSMENT</div>
+      <p class="q">“I can choose a data structure and storage format for a real GIS problem and explain why, including its limits.”</p>
+      <div class="scale">${[1, 2, 3, 4, 5].map(n => `<button aria-pressed="${E.rating === n}" onclick="S.ev.rating=${n};save();renderEvaluate()">${n}</button>`).join("")}</div>
+      <div class="ends"><span>Not yet</span><span>Very confident</span></div>
+      <p class="q" style="font-size:16px">Your name for the certificate and leaderboard</p>
+      <input type="text" value="${esc(E.name)}" placeholder="Name" maxlength="24" oninput="S.ev.name=this.value;save()">
+      <button class="btn wide" ${E.rating ? "" : "disabled"} onclick="S.ev.step++;complete('evaluate');save();renderEvaluate()">See my results 🏆</button>`;
+  } else body = results();
+  $("stage").innerHTML = `
+    <header>
+      <div class="eyebrow">GIS DATA STRUCTURES • EVALUATE</div>
+      <h1>🏆 Final Design Review</h1>
+      <p class="subtitle">Show what you understand, explain your thinking, and see how far your ideas have come since the data mess.</p>
+    </header>
+    <div class="bar"><div style="width:${Math.min(E.step / EV_TOTAL, 1) * 100}%"></div></div>
+    <section class="panel">${body}</section>`;
+  if (E.step > QUIZ.length + 2 && !E.sent && window.Scores && Scores.enabled) {
+    E.sent = true; save();
+    const score = QUIZ.filter((q, i) => E.picks[i] === q.a).length;
+    Scores.submit("architect", S.xp, `quiz ${score}/${QUIZ.length}`, E.name).then(ok => {
+      const el = $("sent"); if (el) el.textContent = ok ? "✅ Your XP was sent to the class leaderboard." : "⚠️ Couldn't reach the leaderboard. Show your teacher this screen.";
+    });
+  }
+}
+function evPick(i) {
+  const E = S.ev; E.picks[E.step] = i; save();
+  if (i === QUIZ[E.step].a && !S.quizXp[E.step]) { S.quizXp[E.step] = true; award(50, "correct!"); }
+  renderEvaluate();
+}
+function results() {
+  const E = S.ev, score = QUIZ.filter((q, i) => E.picks[i] === q.a).length;
+  const missed = QUIZ.filter((q, i) => E.picks[i] !== q.a).map(q => q.topic);
+  const ranks = [[2000, "🏛️", "Chief Data Architect"], [1400, "🥇", "Senior GIS Analyst"], [800, "🥈", "Data Designer"], [0, "🥉", "Data Apprentice"]];
+  const [, medal, rank] = ranks.find(r => S.xp >= r[0]);
+  const badges = [
+    ["🔍 Mess Detective", Object.keys(S.found).length === Object.keys(PROBLEMS).length], ["🧪 Lab Complete", STATIONS.every(s => S.clues[s.id])],
+    ["📚 Structure Scholar", TOPICS.every(t => qSolved("x" + t.id))], ["🏙️ City Planner", CASES.every((c, k) => (S.q["c" + k] || { p: [] }).p[0] === c.a)],
+    ["🏆 Quiz Ace", score >= QUIZ.length - 1]
+  ];
+  const nm = esc(E.name.trim());
+  return `<div class="cert">
+      <div class="medal">${medal}</div>
+      <div class="step">${nm ? "THIS CERTIFIES THAT " + nm.toUpperCase() + " HAS EARNED THE RANK OF" : "YOUR RANK"}</div>
+      <h2>${rank}</h2>
+      <div class="score">${S.xp} XP</div>
+      <p class="muted">Quiz: <strong>${score}/${QUIZ.length}</strong> · Confidence: <strong>${E.rating}/5</strong></p>
+      <div class="badges">${badges.map(([b, on]) => `<span class="badge${on ? "" : " off"}">${b}</span>`).join("")}</div>
+      <ul class="rev">${QUIZ.map((q, i) => `<li>${E.picks[i] === q.a ? "✅" : "❌"} ${q.topic}</li>`).join("")}</ul>
+      ${missed.length ? `<div class="say" style="text-align:left;max-width:560px;margin:16px auto 0"><strong>Review next:</strong> ${missed.join(", ")}. Revisit those structure files in Explain.</div>` : `<p class="muted">Perfect quiz. You can design data for real GIS problems and explain why.</p>`}
+    </div>
+    <p class="muted" id="sent" style="text-align:center"></p>
+    <div class="row">
+      <button class="btn ghost" onclick="window.print()">🖨️ Print certificate</button>
+      <button class="btn ghost" onclick="go('explain')">Review structure files</button>
+      <button class="btn ghost" onclick="S.ev=Object.assign(fresh().ev,{name:S.ev.name});save();renderEvaluate()">Retake evaluation</button>
+    </div>`;
+}
+
+render();
+</script>
+<script src="../scores.js"></script>
+</body>
+</html>
