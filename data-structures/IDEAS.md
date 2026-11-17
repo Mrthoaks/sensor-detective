@@ -3,8 +3,7 @@
 ## 1. Spin the Wheel (teacher screen only): ✅ BUILT as spin-wheel.html
 - A big prize-style wheel shown on the teacher's projector, **not** linked from the student menus
   (open it directly, e.g. `data-structures/spin-wheel.html`, or from the teacher footer link).
-- The wheel's slices are vocabulary terms. Choose the word list: Sensor Detective (first presentation),
-  Data Structures, or both.
+- The wheel's slices are the Data Structures terms only (6 groups you can switch on and off).
 - A student comes up and spins. The wheel spins fast, slows down and lands on one word.
   The student explains that word to the class.
 - **Each student gets two spins.** Type the student's name, track spins left (2 → 1 → 0).
