@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Say It Another Way</title>
+<style>
+* { box-sizing: border-box; }
+body { margin: 0; font-family: Arial, Helvetica, sans-serif; background: #f2f7f6; color: #172033; }
+.app { max-width: 620px; margin: auto; padding: 28px 16px 50px; }
+.back { display: inline-block; margin-bottom: 14px; color: #1f6f6a; font-weight: bold; text-decoration: none; }
+header { text-align: center; margin-bottom: 18px; }
+.eyebrow { font-size: 13px; font-weight: 700; letter-spacing: 2px; color: #1f6f6a; margin-bottom: 8px; }
+h1 { font-size: 32px; margin: 0 0 8px; }
+.subtitle { line-height: 1.55; color: #5d6678; font-size: 16px; margin: 0; }
+.panel { background: white; border-radius: 18px; padding: 22px; box-shadow: 0 6px 20px rgba(0,0,0,.06); }
+.steps { margin: 0 0 18px; padding-left: 20px; line-height: 1.6; }
+.row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+.row span { font-weight: bold; width: 100%; font-size: 14px; }
+.opt { border: 2px solid #dfe4ed; background: white; border-radius: 999px; padding: 8px 14px; font: bold 14px Arial; cursor: pointer; color: #172033; }
+.opt[aria-pressed="true"] { background: #1f6f6a; border-color: #1f6f6a; color: white; }
+.big { width: 100%; border: 0; border-radius: 14px; padding: 16px; font: bold 18px Arial; cursor: pointer; background: #1f6f6a; color: white; }
+button:focus-visible, a:focus-visible { outline: 3px solid #172033; outline-offset: 2px; }
+.top { display: flex; justify-content: space-between; align-items: center; font-weight: bold; margin-bottom: 12px; }
+.timer { font-size: 26px; color: #1f6f6a; }
+.timer.low { color: #d9695a; }
+.term { border-top: 8px solid var(--c, #1f6f6a); text-align: center; padding: 28px 18px; }
+.term .grp { font-size: 13px; letter-spacing: 1.5px; font-weight: bold; color: var(--c, #1f6f6a); text-transform: uppercase; }
+.term .ic { font-size: 54px; margin: 10px 0 4px; }
+.term .w { font-size: 40px; font-weight: bold; letter-spacing: 1px; word-break: break-word; }
+.taboo { margin-top: 18px; background: #fdf0ee; border-radius: 12px; padding: 12px; }
+.taboo b { display: block; color: #d9695a; font-size: 13px; letter-spacing: 1px; margin-bottom: 6px; }
+.taboo div { font-size: 18px; font-weight: bold; color: #7a2e25; }
+.hint { margin-top: 12px; font-size: 14px; color: #5d6678; }
+.btns { display: grid; grid-template-columns: 1fr 2fr; gap: 10px; margin-top: 14px; }
+.pass { background: #e9ecf3; color: #172033; }
+.got { background: #4caf75; }
+.score { text-align: center; }
+.score .n { font-size: 64px; font-weight: bold; color: #4caf75; }
+.list { margin: 16px 0; padding: 0; list-style: none; text-align: left; }
+.list li { padding: 8px 10px; border-radius: 10px; margin-bottom: 6px; background: #f2f7f6; font-size: 15px; }
+.list li.miss { background: #fdf0ee; }
+.list li small { display: block; color: #5d6678; margin-top: 3px; line-height: 1.4; }
+.hidden { display: none; }
+.roles { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+.role { border-radius: 14px; padding: 14px; text-align: center; line-height: 1.45; font-size: 15px; }
+.role .e { font-size: 34px; }
+.role b { display: block; font-size: 17px; margin: 4px 0; }
+.r1 { background: #e3f1ee; } .r2 { background: #eaf6ef; }
+.who { background: #172033; color: white; border-radius: 12px; padding: 10px 14px; text-align: center; font-weight: bold; margin-bottom: 10px; line-height: 1.4; }
+.who small { display: block; font-weight: normal; opacity: .8; }
+.hand { text-align: center; }
+.hand .e { font-size: 64px; }
+.hand h2 { margin: 8px 0; }
+.hand p { color: #5d6678; line-height: 1.55; }
+.cd { font-size: 96px; font-weight: bold; color: #1f6f6a; text-align: center; padding: 40px 0; }
+.stop { background: none; border: 0; color: #5d6678; text-decoration: underline; font: 14px Arial; cursor: pointer; display: block; margin: 14px auto 0; }
+.big:disabled { opacity: .5; }
+@media (max-width: 420px) { .term .w { font-size: 30px; } h1 { font-size: 26px; } }
+</style>
+</head>
+<body>
+<div class="app">
+  <a class="back" href="index.html">← All Data Structures games</a>
+  <header>
+    <div class="eyebrow">GIS DATA STRUCTURES • PARTNER GAME</div>
+    <h1>🗣️ Say It Another Way</h1>
+    <p class="subtitle">Explain the word without saying it. Your partner guesses.</p>
+  </header>
+
+  <section class="panel" id="setup">
+    <h2 style="margin:0 0 12px;font-size:20px">How to play (with a partner)</h2>
+    <div class="roles">
+      <div class="role r1"><div class="e">🗣️</div><b>Explainer</b>Holds the phone and sees the word. Describes it <u>without</u> saying it.</div>
+      <div class="role r2"><div class="e">🤔</div><b>Guesser</b>Can't see the screen. Listens and shouts out guesses.</div>
+    </div>
+    <ol class="steps">
+      <li>A word appears with some red <b>"don't say"</b> words. The explainer can't say any of them.</li>
+      <li>The guesser guesses out loud. When they say the word, the explainer taps <b>✓ They got it</b>.</li>
+      <li>Too hard? Tap <b>Skip</b> for a new word.</li>
+      <li>Keep going as long as you like (or pick a timer). Tap <b>End round</b> to see your score, then swap roles.</li>
+    </ol>
+    <p class="hint" style="margin:-6px 0 16px">Only tap ✓ when your partner really says the word. The game can't hear them, so it trusts you!</p>
+    <div class="row" id="timeRow"><span>Round length</span></div>
+    <div class="row" id="grpRow"><span>Words from</span></div>
+    <button class="big" id="start">Next: pick who explains →</button>
+  </section>
+
+  <section class="panel hand hidden" id="handoff">
+    <div class="e">📱</div>
+    <h2 id="handTitle">Round 1</h2>
+    <p id="handTxt"><b>Explainer:</b> hold the phone so only you can see it.<br><b>Guesser:</b> don't look at the screen!</p>
+    <button class="big" id="go">I'm the explainer. Start the timer</button>
+  </section>
+
+  <section class="panel hidden" id="count3"><div class="cd" id="cd">3</div></section>
+
+  <section class="hidden" id="play">
+    <div class="who">🗣️ EXPLAINER: describe this word<small>Guesser: say your guesses out loud</small></div>
+    <div class="top"><span id="count">Guessed: 0</span><span class="timer" id="timer">1:30</span></div>
+    <div class="panel term" id="card">
+      <div class="grp" id="grp"></div>
+      <div class="ic" id="ic"></div>
+      <div class="w" id="word"></div>
+      <div class="taboo"><b>DON'T SAY</b><div id="taboo"></div></div>
+      <div class="hint" id="hint"></div>
+    </div>
+    <div class="btns">
+      <button class="big pass" id="pass">Skip ⏭</button>
+      <button class="big got" id="got">✓ They got it</button>
+    </div>
+    <button class="big pass" id="stopBtn" style="margin-top:12px">⏹ End round</button>
+  </section>
+
+  <section class="panel score hidden" id="done">
+    <div id="doneHead">Time's up! Your partner guessed</div>
+    <div class="n" id="final">0</div>
+    <div id="finalTxt"></div>
+    <ul class="list" id="list"></ul>
+    <button class="big" id="again">🔄 Swap roles: guesser now explains</button>
+    <button class="stop" id="home">Change settings</button>
+    <p style="margin-top:14px"><a class="back" href="term-clinic.html">Review the words in the Term Clinic →</a></p>
+  </section>
+</div>
+<script>
+/* term, icon, group, don't-say words, short meaning (shown after the round) */
+const GROUPS = {
+  models: { name: "Raster & vector", color: "#1f6f6a" },
+  types: { name: "Attribute data types", color: "#3d7fc4" },
+  rel: { name: "Relational tables", color: "#b0563f" },
+  fmt: { name: "Storage formats", color: "#8a5bb8" },
+  surf: { name: "Surfaces & compression", color: "#c4932f" },
+  find: { name: "Retrieval & sharing", color: "#2f8f4f" }
+};
+const TERMS = [
+  ["RASTER", "🔲", "models", ["grid", "cell", "pixel"], "A grid of square cells, each holding one value."],
+  ["VECTOR", "📐", "models", ["point", "line", "polygon"], "Points, lines and polygons built from x,y coordinates."],
+  ["CELL SIZE", "📏", "models", ["cell", "size", "resolution"], "The ground width of one raster cell."],
+  ["POLYGON", "⬟", "models", ["shape", "area", "closed"], "Lines that close to form an area, like a lake or parcel."],
+  ["FEATURE CLASS", "🗃️", "models", ["feature", "layer", "collection"], "A collection of features of one kind with the same fields."],
+  ["MULTI-BAND", "🥞", "models", ["band", "stack", "layers"], "Several rasters stacked so each cell holds several values."],
+  ["SHORT INTEGER", "🔢", "types", ["whole", "small", "number"], "Whole numbers from −32,768 to 32,767."],
+  ["LONG INTEGER", "🔟", "types", ["whole", "big", "number"], "Whole numbers up to about ±2.1 billion."],
+  ["DOUBLE", "🎯", "types", ["decimal", "precise", "float"], "The most precise decimal number type."],
+  ["STRING", "🧵", "types", ["text", "letters", "words"], "Text: letters and characters tied together."],
+  ["NULL", "❓", "types", ["blank", "empty", "zero"], "A value meaning “we don't know”. Not zero!"],
+  ["PRIMARY KEY", "🔑", "rel", ["unique", "ID", "key"], "A field that uniquely identifies each record."],
+  ["FOREIGN KEY", "🔗", "rel", ["link", "other table", "key"], "A field holding the primary key of a record in another table."],
+  ["JOIN", "🤝", "rel", ["combine", "table", "attach"], "Appends one table's attributes onto matching records of another."],
+  ["RELATE", "🧷", "rel", ["link", "many", "ArcGIS"], "Links one feature to many records without copying them."],
+  ["MANY-TO-MANY", "🕸️", "rel", ["many", "both", "in-between"], "Many records match many: needs an in-between table."],
+  ["RELATIONAL DATABASE", "🗄️", "rel", ["tables", "SQL", "Access"], "Several linked tables you query with SQL."],
+  ["SHAPEFILE", "📦", "fmt", [".shp", "files", "Esri"], "An old vector format that is really a family of files."],
+  ["FILE GEODATABASE", "🗂️", "fmt", [".gdb", "folder", "Esri"], "Esri's main storage format: a .gdb folder."],
+  ["GEOPACKAGE", "🎁", "fmt", [".gpkg", "open", "single file"], "An open, single-file format almost every GIS can read."],
+  ["METADATA", "📝", "fmt", ["data about", "information", "label"], "Data about data: who, when, how, which coordinate system."],
+  ["TIN", "🔺", "surf", ["triangle", "network", "irregular"], "x,y,z points joined into triangles to model a surface."],
+  ["DEM", "⛰️", "surf", ["elevation", "height", "raster"], "A raster where each cell holds the ground height."],
+  ["BREAKLINE", "✂️", "surf", ["ridge", "cliff", "edge"], "A line where the surface changes sharply."],
+  ["QUADTREE", "🪟", "surf", ["four", "split", "quadrant"], "Splits a grid into 4 again and again until each block is uniform."],
+  ["RUN-LENGTH ENCODING", "🏃", "surf", ["run", "repeat", "count"], "Stores repeated values as (value, count)."],
+  ["LOSSY", "🫠", "surf", ["lose", "JPEG", "quality"], "Compression that throws away some detail."],
+  ["SPATIAL INDEX", "🧭", "find", ["search", "fast", "location"], "A lookup of which features are where, so searches skip the rest."],
+  ["COORDINATE SYSTEM", "🌐", "find", ["latitude", "longitude", "projection"], "The reference that gives x,y numbers a real place on Earth."],
+  ["GEOREFERENCING", "📌", "find", ["control points", "scan", "line up"], "Lining up a scanned map with real-world coordinates."],
+  ["INTEROPERABILITY", "🤝", "find", ["share", "exchange", "systems"], "Different systems exchanging and using the same data."]
+];
+const TIMES = [[0, "♾️ Unlimited"], [60, "1 min"], [90, "1½ min"], [120, "2 min"]];
+let round = 1, secs = 0, grp = "all", deck = [], i = 0, score = 0, log = [], left = 0, tick = null;
+const $ = id => document.getElementById(id);
+
+function pills(row, items, get, set) {
+  row.querySelectorAll("button").forEach(b => b.remove());
+  items.forEach(([v, label]) => {
+    const b = document.createElement("button");
+    b.className = "opt"; b.textContent = label; b.setAttribute("aria-pressed", get() === v);
+    b.onclick = () => { set(v); pills(row, items, get, set); };
+    row.appendChild(b);
+  });
+}
+pills($("timeRow"), TIMES, () => secs, v => secs = v);
+pills($("grpRow"), [["all", "All " + TERMS.length], ...Object.entries(GROUPS).map(([k, g]) => [k, g.name])], () => grp, v => grp = v);
+
+function show(id) { ["setup", "handoff", "count3", "play", "done"].forEach(s => $(s).classList.toggle("hidden", s !== id)); }
+function fmt(s) { return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); }
+function shuffle(a) { for (let k = a.length - 1; k > 0; k--) { const j = Math.floor(Math.random() * (k + 1)); [a[k], a[j]] = [a[j], a[k]]; } return a; }
+
+function draw() {
+  const [t, ic, g, taboo] = deck[i], G = GROUPS[g];
+  $("card").style.setProperty("--c", G.color);
+  $("grp").textContent = G.name; $("ic").textContent = ic; $("word").textContent = t;
+  $("taboo").textContent = taboo.join(" · ");
+  $("hint").textContent = "Stuck? Use the comparison from the Term Clinic card.";
+}
+function next(ok) {
+  log.push([deck[i], ok]);
+  if (ok) score++;
+  $("count").textContent = "Guessed: " + score;
+  i++;
+  if (i >= deck.length) { deck = shuffle(deck.slice()); i = 0; }
+  draw();
+  // short pause so a fast double tap can't count twice
+  $("got").disabled = $("pass").disabled = true;
+  setTimeout(() => { $("got").disabled = $("pass").disabled = false; }, 700);
+}
+function handoff() {
+  $("handTitle").textContent = "Round " + round;
+  $("handTxt").innerHTML = round === 1
+    ? "<b>Explainer:</b> hold the phone so only you can see it.<br><b>Guesser:</b> don't look at the screen!"
+    : "Swap! The <b>old guesser</b> takes the phone and explains now.<br>The old explainer guesses. No peeking!";
+  show("handoff");
+}
+function countdown() {
+  let n = 3; $("cd").textContent = n; show("count3");
+  const t = setInterval(() => { n--; if (n <= 0) { clearInterval(t); start(); } else $("cd").textContent = n; }, 800);
+}
+function start() {
+  deck = shuffle(TERMS.filter(t => grp === "all" || t[2] === grp)); i = 0; score = 0; log = []; left = secs;
+  $("count").textContent = "Guessed: 0"; $("timer").textContent = secs ? fmt(left) : "♾️ No timer"; $("timer").classList.remove("low");
+  show("play"); draw(); $("got").focus();
+  clearInterval(tick);
+  if (!secs) return;
+  tick = setInterval(() => {
+    left--; $("timer").textContent = fmt(Math.max(left, 0)); $("timer").classList.toggle("low", left <= 10);
+    if (left <= 0) end();
+  }, 1000);
+}
+function end(allDone) {
+  clearInterval(tick);
+  $("doneHead").textContent = allDone === true ? "You used every word! Your partner guessed" : allDone === false ? "Round over! Your partner guessed" : "Time's up! Your partner guessed";
+  $("final").textContent = score;
+  $("finalTxt").textContent = score === 1 ? "word" : "words";
+  $("list").innerHTML = log.map(([t, ok]) => `<li class="${ok ? "" : "miss"}">${ok ? "✅" : "⏭️"} <b>${t[0]}</b><small>${t[4]}</small></li>`).join("") || "<li>No words this round.</li>";
+  show("done");
+}
+$("start").onclick = () => { round = 1; handoff(); };
+$("go").onclick = countdown;
+$("again").onclick = () => { round++; handoff(); };
+$("home").onclick = () => show("setup");
+$("stopBtn").onclick = () => end(false);
+$("got").onclick = () => next(true);
+$("pass").onclick = () => next(false);
+</script>
+</body>
+</html>

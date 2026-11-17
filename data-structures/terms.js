@@ -56,3 +56,56 @@ window.DS_GROUPS = [
     ["METADATA", "📝", "Data about data: who made it, when, how, in what coordinate system and how accurate.", "The nutrition label on food.", "ISO 19115, FGDC, .xml files."]
   ]}
 ];
+
+/* MNEMONIC SONGS & CHANTS: original words set to well-known public-domain tunes (or a stomp-clap beat). */
+window.DS_SONGS = {
+  models: { title: "Raster & Vector Row", tune: "Row, Row, Row Your Boat", lines: [
+    "Raster is a grid, cells all side by side,",
+    "One value in every cell, covering far and wide.",
+    "Vector's points and lines, polygons so fine,",
+    "Raster's faster, vector's corrector: pick the right one every time!"
+  ]},
+  types: { title: "Twinkle Data Types", tune: "Twinkle, Twinkle, Little Star", lines: [
+    "Short is small and long is tall,",
+    "Whole numbers, that is all.",
+    "Float and double hold the decimals,",
+    "Double's the most precise of all.",
+    "Text is letters on a string,",
+    "Null means “we don't know the thing!”"
+  ]},
+  rel: { title: "Key Jacques", tune: "Frère Jacques (Are You Sleeping?)", lines: [
+    "Primary key, primary key,",
+    "One of a kind, one of a kind!",
+    "Foreign key points to it, foreign key points to it,",
+    "Tables joined! Tables joined!",
+    "(Echo) One-to-one… one-to-many… many-to-many needs a table in between!"
+  ]},
+  fmt: { title: "The Shapefile Stomp", tune: "Stomp, stomp, CLAP! (stadium chant beat)", lines: [
+    "S-H-P! (stomp stomp CLAP)",
+    "S-H-X! (stomp stomp CLAP)",
+    "D-B-F! (stomp stomp CLAP)",
+    "And the P-R-J! (stomp stomp CLAP)",
+    "Shape, index, table, projection: send them all, the whole collection!",
+    "G-P-K-G: one file, open, read it free!"
+  ]},
+  surf: { title: "Old MacDonald Had a Map", tune: "Old MacDonald Had a Farm", lines: [
+    "Old MacDonald had a map, E-I-E-I-O,",
+    "And on that map he had a TIN, E-I-E-I-O,",
+    "With an x, y, z here, and a triangle there,",
+    "Small ones where it's steep, big ones where it's flat!",
+    "Quadtree splits in four, four, four, till each block's one colour, no more,",
+    "Lossless keeps it all, but lossy lets some go!"
+  ]},
+  find: { title: "Index Bridge", tune: "London Bridge Is Falling Down", lines: [
+    "Spatial index finds it fast, finds it fast, finds it fast,",
+    "Skip the far stuff, zoom right past: same answer, quicker!",
+    "Georeference with control points, control points, control points,",
+    "Pin the old map to the joints of the real world!",
+    "Open formats share with all, share with all, share with all,",
+    "GeoPackage, one file for all: interoperable!"
+  ]}
+};
+window.DS_CHANT = { title: "Null vs Zero (call and response)", lines: [
+  "Teacher: “What does NULL mean?” Class: “I don't know!”",
+  "Teacher: “What does ZERO mean?” Class: “I know: it's zero!”"
+]};

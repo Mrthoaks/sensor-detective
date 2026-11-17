@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Data Term Clinic</title>
+<style>
+* { box-sizing: border-box; }
+body { margin: 0; font-family: Arial, Helvetica, sans-serif; background: #f2f7f6; color: #172033; }
+.app { max-width: 1000px; margin: auto; padding: 28px 16px 60px; }
+header { text-align: center; margin-bottom: 18px; }
+.eyebrow { font-size: 13px; font-weight: 700; letter-spacing: 2px; color: #1f6f6a; margin-bottom: 10px; }
+h1 { font-size: 36px; margin: 0 0 10px; }
+.subtitle { line-height: 1.6; color: #5d6678; font-size: 16px; margin: 0 auto; max-width: 660px; }
+.back { display: inline-block; margin-bottom: 14px; color: #1f6f6a; font-weight: bold; text-decoration: none; }
+.bar { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 18px 0 8px; }
+.bar button { border: 2px solid #d6e2df; background: white; color: #172033; border-radius: 999px; padding: 8px 14px; font: bold 14px Arial; cursor: pointer; }
+.bar button[aria-pressed="true"] { background: #1f6f6a; border-color: #1f6f6a; color: white; }
+.bar button.sing { border-color: #c4932f; }
+.bar button.sing[aria-pressed="true"] { background: #c4932f; border-color: #c4932f; }
+.tools { text-align: center; font-size: 13px; color: #7a8393; margin-bottom: 18px; }
+.tools button { background: none; border: none; color: #1f6f6a; font: bold 13px Arial; cursor: pointer; text-decoration: underline; }
+button:focus-visible { outline: 3px solid #172033; outline-offset: 3px; }
+.group { margin-top: 26px; }
+.group h2 { font-size: 20px; margin: 0 0 4px; }
+.group > p { margin: 0 0 12px; color: #667085; font-size: 14px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 12px; }
+.card { perspective: 900px; min-height: 240px; display: grid; border: none; background: none; padding: 0; cursor: pointer; text-align: left; font: inherit; color: inherit; }
+.card:focus-visible { border-radius: 18px; }
+.inner { display: grid; width: 100%; transition: transform .45s ease; transform-style: preserve-3d; }
+.card[aria-pressed="true"] .inner { transform: rotateY(180deg); }
+.face { grid-area: 1 / 1; backface-visibility: hidden; -webkit-backface-visibility: hidden; border-radius: 18px; padding: 16px; box-shadow: 0 6px 20px rgba(0,0,0,.06); background: white; display: flex; flex-direction: column; border-top: 6px solid var(--c); overflow: hidden; }
+.front { align-items: center; justify-content: center; text-align: center; }
+.front .ic { font-size: 44px; margin-bottom: 10px; }
+.front .t { font-size: 19px; font-weight: bold; letter-spacing: .5px; }
+.front .tap { margin-top: 10px; font-size: 12px; color: #8992a5; }
+.back-face { transform: rotateY(180deg); font-size: 13.5px; line-height: 1.45; gap: 6px; }
+.back-face .t { font-weight: bold; font-size: 15px; color: var(--c); }
+.back-face b { color: #172033; }
+.back-face .like { background: #f2f7f6; border-radius: 10px; padding: 6px 8px; }
+.tag { margin-top: auto; font-size: 12px; color: #5d6678; }
+
+/* songs */
+.song { background: #fffaf0; border: 2px solid #f0dcae; border-left: 8px solid var(--c); border-radius: 16px; padding: 14px 18px; margin: 0 0 14px; }
+.song .hd { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.song .hd b { font-size: 16px; }
+.song .tune { font-size: 13px; color: #8a6a1f; }
+.song ol { margin: 8px 0 0; padding-left: 20px; line-height: 1.6; font-size: 15px; }
+.song.big { padding: 22px 26px; }
+.song.big .hd b { font-size: 24px; }
+.song.big .tune { font-size: 16px; }
+.song.big ol { font-size: clamp(18px, 2.4vw, 26px); line-height: 1.55; list-style: none; padding-left: 0; }
+.song.big li { padding: 4px 8px; border-radius: 8px; }
+.song.big li.on { background: #ffe9a8; }
+.song .play { margin-left: auto; border: 2px solid var(--c); background: white; color: #172033; border-radius: 30px; padding: 6px 12px; font: bold 13px Arial; cursor: pointer; }
+.sing-intro { text-align: center; color: #5d6678; line-height: 1.6; max-width: 680px; margin: 10px auto 18px; }
+@media (max-width: 520px) { h1 { font-size: 28px; } .grid { grid-template-columns: 1fr 1fr; } .face { padding: 12px; } .back-face { font-size: 12.5px; } }
+@media (prefers-reduced-motion: reduce) { .inner { transition: none; } }
+</style>
+</head>
+<body>
+<div class="app">
+  <a class="back" href="index.html">← All Data Structures games</a>
+  <header>
+    <div class="eyebrow">GIS DATA STRUCTURES • TERM CLINIC</div>
+    <h1>🩺 Data Term Clinic</h1>
+    <p class="subtitle">Every key data structures word in plain language. Guess what it means, then tap the card to check: the meaning, an everyday comparison, and an example. Each group has a 🎵 song to help it stick.</p>
+  </header>
+  <div class="bar" id="bar"></div>
+  <p class="tools" id="tools"><button id="flipAll">Flip all</button> · <button id="reset">Reset</button></p>
+  <div id="groups"></div>
+</div>
+<script src="terms.js"></script>
+<script>
+const GROUPS = window.DS_GROUPS, SONGS = window.DS_SONGS, CHANT = window.DS_CHANT;
+const bar = document.getElementById("bar"), groupsEl = document.getElementById("groups");
+let filter = "all", karaoke = null;
+function songHTML(id, g, big) {
+  const s = SONGS[id];
+  return `<div class="song${big ? " big" : ""}" style="--c:${g ? g.color : "#c4932f"}" data-song="${id}">
+    <div class="hd"><b>🎵 ${s.title}</b><span class="tune">Tune: ${s.tune}</span>${big ? `<button class="play" onclick="readAlong('${id}')">▶ Read along</button>` : ""}</div>
+    <ol>${s.lines.map(l => `<li>${l}</li>`).join("")}</ol></div>`;
+}
+function renderBar() {
+  bar.innerHTML = "";
+  [{ id: "all", name: "All " + GROUPS.reduce((n, g) => n + g.terms.length, 0) }, ...GROUPS, { id: "sing", name: "🎵 Sing it" }].forEach(g => {
+    const b = document.createElement("button");
+    b.textContent = g.name; b.setAttribute("aria-pressed", filter === g.id);
+    if (g.id === "sing") b.className = "sing";
+    b.onclick = () => { filter = g.id; stopKaraoke(); renderBar(); renderGroups(); };
+    bar.appendChild(b);
+  });
+  document.getElementById("tools").style.visibility = filter === "sing" ? "hidden" : "visible";
+}
+function renderGroups() {
+  groupsEl.innerHTML = "";
+  if (filter === "sing") {
+    groupsEl.innerHTML = `<p class="sing-intro">Project this on the board and sing or chant together. Press <b>▶ Read along</b> to highlight one line at a time.</p>` +
+      GROUPS.map(g => songHTML(g.id, g, true)).join("") +
+      `<div class="song big" style="--c:#c4932f" data-song="chant"><div class="hd"><b>📣 ${CHANT.title}</b><button class="play" onclick="readAlong('chant')">▶ Read along</button></div><ol>${CHANT.lines.map(l => `<li>${l}</li>`).join("")}</ol></div>`;
+    return;
+  }
+  GROUPS.filter(g => filter === "all" || g.id === filter).forEach(g => {
+    const sec = document.createElement("section");
+    sec.className = "group";
+    sec.innerHTML = `<h2>${g.name}</h2><p>${g.intro}</p>` + (SONGS[g.id] ? songHTML(g.id, g, false) : "");
+    const grid = document.createElement("div");
+    grid.className = "grid";
+    g.terms.forEach(([t, ic, mean, like, where]) => {
+      const c = document.createElement("button");
+      c.className = "card"; c.style.setProperty("--c", g.color);
+      c.setAttribute("aria-pressed", "false");
+      c.setAttribute("aria-label", `${t}. Tap to show meaning.`);
+      c.innerHTML = `<div class="inner">
+        <div class="face front"><div class="ic">${ic}</div><div class="t">${t}</div><div class="tap">What does it mean? Tap</div></div>
+        <div class="face back-face"><div class="t">${t}</div><div>${mean}</div><div class="like"><b>Think of it like:</b> ${like}</div><div class="tag">📍 ${where}</div></div>
+      </div>`;
+      c.onclick = () => c.setAttribute("aria-pressed", c.getAttribute("aria-pressed") !== "true");
+      grid.appendChild(c);
+    });
+    sec.appendChild(grid);
+    groupsEl.appendChild(sec);
+  });
+}
+function stopKaraoke() { if (karaoke) clearInterval(karaoke); karaoke = null; document.querySelectorAll(".song li.on").forEach(l => l.classList.remove("on")); }
+function readAlong(id) {
+  stopKaraoke();
+  const lis = [...document.querySelectorAll(`.song[data-song="${id}"] li`)];
+  let i = 0;
+  const step = () => { lis.forEach(l => l.classList.remove("on")); if (i >= lis.length) return stopKaraoke(); lis[i].classList.add("on"); lis[i].scrollIntoView({ block: "center", behavior: "smooth" }); i++; };
+  step(); karaoke = setInterval(step, 3200);
+}
+document.getElementById("flipAll").onclick = () => document.querySelectorAll(".card").forEach(c => c.setAttribute("aria-pressed", "true"));
+document.getElementById("reset").onclick = () => document.querySelectorAll(".card").forEach(c => c.setAttribute("aria-pressed", "false"));
+renderBar(); renderGroups();
+</script>
+</body>
+</html>

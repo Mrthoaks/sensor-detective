@@ -1,6 +1,6 @@
 # Planned additions (teacher's ideas, saved Nov 17)
 
-## 1. Spin the Wheel (teacher screen only)
+## 1. Spin the Wheel (teacher screen only): ✅ BUILT as spin-wheel.html
 - A big prize-style wheel shown on the teacher's projector, **not** linked from the student menus
   (open it directly, e.g. `data-structures/spin-wheel.html`, or from the teacher footer link).
 - The wheel's slices are vocabulary terms. Choose the word list: Sensor Detective (first presentation),
@@ -11,7 +11,7 @@
 - Nice extras: drop a word from the wheel once it's explained, a "re-spin" if a word is repeated,
   a short ticking sound and confetti, and a "show meaning" button so the teacher can check the answer.
 
-## 2. Mnemonic devices (musical and fun)
+## 2. Mnemonic devices (musical and fun): ✅ BUILT in Term Clinic (🎵 songs per group + “Sing it” projector view)
 - Short chants and jingles to memorise key ideas, set to well-known tunes or stomp-clap rhythms.
 - Ideas to write:
   - Shapefile parts: “S-H-P, S-H-X, D-B-F… and the P-R-J!” (stomp-stomp-clap, “We Will Rock You” rhythm)
