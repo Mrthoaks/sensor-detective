@@ -1,6 +1,6 @@
 <!doctype html>
 <!-- SPIN THE WHEEL (teacher screen): students come up in the order they started the games.
-     Each student gets 3 spins; the wheel lands on a Data Structures term and they explain it to the class.
+     Each student gets 5 spins; the wheel lands on a Data Structures term and they explain it to the class.
      Then the next name pops up automatically. Not linked from the student game cards. -->
 <html lang="en">
 <head>
@@ -145,7 +145,7 @@ canvas.confetti { position: fixed; inset: 0; pointer-events: none; z-index: 30; 
 <script src="terms.js"></script>
 <script src="../scores.js"></script>
 <script>
-const GROUPS = window.DS_GROUPS, KEY = "ds-spin-wheel-v2", SPINS = 3, REFRESH = 10000;
+const GROUPS = window.DS_GROUPS, KEY = "ds-spin-wheel-v2", SPINS = 5, REFRESH = 10000;
 const ALL = GROUPS.flatMap(g => g.terms.map(t => ({ w: t[0], ic: t[1], mean: t[2], like: t[3], ex: t[4], g })));
 const store = { get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} } };
 let st = { groups: GROUPS.map(g => g.id), done: [], hist: [], queue: [], finished: [], cur: "", left: SPINS, remove: true, sound: true, since: 0 };
