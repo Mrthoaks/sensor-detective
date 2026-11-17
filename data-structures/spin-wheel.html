@@ -1,0 +1,311 @@
+<!doctype html>
+<!-- SPIN THE WHEEL (teacher screen): a student spins, the wheel lands on a Data Structures term,
+     and the student explains it to the class. Two spins per student. Not linked from the student menus. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spin the Wheel</title>
+<style>
+* { box-sizing: border-box; }
+body { margin: 0; font-family: Arial, Helvetica, sans-serif; background: #0f1c26; color: #eef4f3; min-height: 100vh; }
+.app { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 24px; max-width: 1400px; margin: auto; padding: 20px 24px; min-height: 100vh; }
+.stagearea { display: flex; flex-direction: column; align-items: center; justify-content: center; }
+h1 { margin: 0 0 4px; font-size: 32px; text-align: center; }
+.tag { color: #8fd3c4; font-size: 13px; letter-spacing: 2px; font-weight: bold; text-align: center; margin-bottom: 6px; }
+.wrap { position: relative; width: min(72vh, 100%); aspect-ratio: 1; margin-top: 40px; }
+#wheel { width: 100%; height: 100%; display: block; border-radius: 50%; box-shadow: 0 0 0 10px #22384a, 0 0 0 16px #ffd166, 0 20px 60px rgba(0,0,0,.5); cursor: pointer; will-change: transform; }
+.pointer { position: absolute; top: -26px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 26px solid transparent; border-right: 26px solid transparent; border-top: 52px solid #ffd166; filter: drop-shadow(0 4px 4px rgba(0,0,0,.5)); z-index: 2; }
+.hub { position: absolute; inset: 50%; width: 22%; height: 22%; transform: translate(-50%, -50%); border-radius: 50%; background: radial-gradient(circle at 35% 30%, #ffe8a3, #ffd166 45%, #c99a2a); border: 6px solid #22384a; display: grid; place-items: center; font: bold clamp(16px, 3.2vh, 30px) Arial; color: #172033; cursor: pointer; z-index: 2; user-select: none; }
+.hub:disabled { cursor: not-allowed; filter: grayscale(.7); }
+.hint { margin-top: 18px; color: #9fb3bd; font-size: 15px; text-align: center; }
+
+aside { background: #172a38; border-radius: 20px; padding: 20px; align-self: start; position: sticky; top: 20px; }
+aside h2 { font-size: 16px; margin: 0 0 10px; color: #8fd3c4; letter-spacing: 1px; }
+.box { background: #0f1c26; border-radius: 14px; padding: 14px; margin-bottom: 16px; }
+label { display: block; font-size: 13px; color: #9fb3bd; margin-bottom: 6px; }
+input[type=text] { width: 100%; border: 2px solid #2c4658; background: #0b151d; color: white; border-radius: 10px; padding: 12px; font: bold 18px Arial; }
+.spins { display: flex; align-items: center; gap: 10px; margin-top: 12px; font-weight: bold; }
+.spins .dot { width: 22px; height: 22px; border-radius: 50%; background: #ffd166; box-shadow: 0 0 10px #ffd16688; }
+.spins .dot.used { background: #2c4658; box-shadow: none; }
+.btn { border: 0; border-radius: 12px; padding: 13px 18px; background: #2f8f7f; color: white; font: bold 15px Arial; cursor: pointer; width: 100%; margin-top: 12px; }
+.btn.gold { background: #ffd166; color: #172033; font-size: 20px; padding: 16px; }
+.btn.ghost { background: transparent; border: 2px solid #2c4658; color: #cfe0e5; }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+button:focus-visible, input:focus-visible, canvas:focus-visible { outline: 3px solid #ffd166; outline-offset: 3px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { border: 2px solid var(--c); background: transparent; color: #eef4f3; border-radius: 30px; padding: 6px 10px; font: bold 12px Arial; cursor: pointer; }
+.chip[aria-pressed="true"] { background: var(--c); }
+.row { display: flex; gap: 8px; align-items: center; font-size: 13px; color: #cfe0e5; margin-top: 10px; }
+.row input { width: 18px; height: 18px; accent-color: #2f8f7f; }
+.count { font-size: 13px; color: #9fb3bd; margin-top: 8px; }
+.hist { list-style: none; padding: 0; margin: 0; max-height: 220px; overflow: auto; font-size: 14px; }
+.hist li { padding: 7px 0; border-bottom: 1px solid #22384a; display: flex; justify-content: space-between; gap: 8px; }
+.hist li b { color: #ffd166; }
+.hist li span.ok { color: #7ee0a8; }
+.links { display: flex; flex-wrap: wrap; gap: 12px; font-size: 13px; }
+.links button, .links a { background: none; border: 0; color: #9fb3bd; text-decoration: underline; font: 13px Arial; cursor: pointer; padding: 0; }
+
+/* result card */
+.modal { position: fixed; inset: 0; background: rgba(5,12,18,.78); display: none; place-items: center; z-index: 20; padding: 20px; }
+.modal.show { display: grid; }
+.card { background: white; color: #172033; border-radius: 26px; padding: 34px 36px; width: min(760px, 100%); text-align: center; border-top: 14px solid var(--c, #2f8f7f); animation: pop .45s cubic-bezier(.2,1.6,.4,1); }
+@keyframes pop { from { transform: scale(.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.card .who { font-size: 16px; color: #5d6678; font-weight: bold; }
+.card .grp { font-size: 14px; letter-spacing: 2px; font-weight: bold; color: var(--c); text-transform: uppercase; margin-top: 6px; }
+.card .ic { font-size: 80px; margin: 6px 0; }
+.card .w { font-size: clamp(36px, 7vw, 66px); font-weight: bold; letter-spacing: 1px; line-height: 1.1; }
+.card .task { font-size: 20px; margin: 14px 0 6px; color: #3f4a5c; }
+.card .mean { display: none; text-align: left; background: #f3f8f7; border-radius: 16px; padding: 16px 20px; margin-top: 16px; font-size: 18px; line-height: 1.55; }
+.card .mean.show { display: block; }
+.card .mean p { margin: 4px 0 8px; }
+.card .acts { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 20px; }
+.card .acts .btn { width: auto; margin: 0; }
+.card .btn.ghost { color: #1f6f6a; border-color: #d6e2df; }
+.card .left { margin-top: 14px; font-size: 15px; color: #5d6678; }
+canvas.confetti { position: fixed; inset: 0; pointer-events: none; z-index: 30; }
+
+@media (max-width: 900px) { .app { grid-template-columns: 1fr; } aside { position: static; } .wrap { width: min(92vw, 70vh); } }
+@media (prefers-reduced-motion: reduce) { .card { animation: none; } }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="stagearea">
+    <div class="tag">GIS DATA STRUCTURES • CLASS GAME</div>
+    <h1>🎡 Spin the Wheel</h1>
+    <div class="wrap">
+      <div class="pointer" aria-hidden="true"></div>
+      <canvas id="wheel" width="1000" height="1000" tabindex="0" role="button" aria-label="Spin the wheel"></canvas>
+      <button class="hub" id="hub" onclick="spin()">SPIN</button>
+    </div>
+    <p class="hint">Click the wheel, press <b>SPIN</b> or hit the <b>space bar</b>. Wherever it stops, explain that word to the class!</p>
+  </div>
+
+  <aside>
+    <div class="box">
+      <h2>🎤 PLAYER</h2>
+      <label for="nm">Student's name</label>
+      <input type="text" id="nm" maxlength="24" placeholder="Type a name" autocomplete="off">
+      <div class="spins" id="spins"></div>
+      <button class="btn gold" id="spinbtn" onclick="spin()">🎡 SPIN</button>
+      <button class="btn ghost" onclick="nextStudent()">👋 Next student</button>
+    </div>
+    <div class="box">
+      <h2>🎯 WORDS ON THE WHEEL</h2>
+      <div class="chips" id="chips"></div>
+      <label class="row"><input type="checkbox" id="remove" checked> Remove a word once it's been explained</label>
+      <div class="count" id="count"></div>
+      <button class="btn ghost" onclick="refill()">↺ Put all words back</button>
+    </div>
+    <div class="box">
+      <h2>📜 THIS CLASS</h2>
+      <ul class="hist" id="hist"></ul>
+    </div>
+    <div class="links">
+      <button onclick="fullscreen()">⛶ Full screen</button>
+      <button onclick="sound=!sound;save();renderSide()" id="snd"></button>
+      <button onclick="clearHistory(this)">Clear history</button>
+      <a href="index.html">← Games page</a>
+    </div>
+  </aside>
+</div>
+
+<div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="rw">
+  <div class="card" id="card"></div>
+</div>
+
+<script src="terms.js"></script>
+<script>
+const GROUPS = window.DS_GROUPS, KEY = "ds-spin-wheel-v1", SPINS = 2;
+const ALL = GROUPS.flatMap(g => g.terms.map(t => ({ w: t[0], ic: t[1], mean: t[2], like: t[3], ex: t[4], g })));
+const store = { get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} } };
+let st = { groups: GROUPS.map(g => g.id), done: [], hist: [], name: "", left: SPINS, remove: true, sound: true };
+try { const raw = store.get(KEY); if (raw) st = Object.assign(st, JSON.parse(raw)); } catch (e) {}
+let sound = st.sound !== false;
+function save() { st.sound = sound; store.set(KEY, JSON.stringify(st)); }
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+/* the words currently on the wheel, in a fixed mixed order so groups are spread around */
+function items() {
+  const list = ALL.filter(t => st.groups.includes(t.g.id) && !st.done.includes(t.w));
+  return list.map((t, i) => ({ t, k: (i * 7919) % 101 })).sort((a, b) => a.k - b.k || a.t.w.localeCompare(b.t.w)).map(x => x.t);
+}
+let ITEMS = items(), angle = 0, spinning = false, current = null;
+
+/* ---------- draw ---------- */
+const cv = $("wheel"), ctx = cv.getContext("2d");
+function shade(hex, f) {
+  const n = parseInt(hex.slice(1), 16), r = n >> 16, g = n >> 8 & 255, b = n & 255;
+  const m = v => Math.round(f < 0 ? v * (1 + f) : v + (255 - v) * f);
+  return `rgb(${m(r)},${m(g)},${m(b)})`;
+}
+function draw() {
+  const W = 1000, R = 490, c = W / 2;
+  ctx.clearRect(0, 0, W, W);
+  const n = ITEMS.length;
+  if (!n) {
+    ctx.fillStyle = "#22384a"; ctx.beginPath(); ctx.arc(c, c, R, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "#cfe0e5"; ctx.font = "bold 40px Arial"; ctx.textAlign = "center";
+    ctx.fillText("All words explained! 🎉", c, c - 160); ctx.font = "28px Arial"; ctx.fillText("Press “Put all words back”", c, c + 180);
+    return;
+  }
+  const s = Math.PI * 2 / n, fs = Math.max(13, Math.min(34, 560 / n + 8));
+  ITEMS.forEach((t, i) => {
+    const a0 = -Math.PI / 2 + i * s;
+    ctx.beginPath(); ctx.moveTo(c, c); ctx.arc(c, c, R, a0, a0 + s); ctx.closePath();
+    ctx.fillStyle = shade(t.g.color, i % 2 ? -.18 : .08); ctx.fill();
+    ctx.strokeStyle = "rgba(255,255,255,.85)"; ctx.lineWidth = n > 30 ? 2 : 3; ctx.stroke();
+    ctx.save(); ctx.translate(c, c); ctx.rotate(a0 + s / 2);
+    ctx.fillStyle = "white"; ctx.textAlign = "right"; ctx.textBaseline = "middle";
+    let size = fs; ctx.font = `bold ${size}px Arial`;
+    const maxW = R - 140;
+    while (ctx.measureText(t.w).width > maxW && size > 10) { size--; ctx.font = `bold ${size}px Arial`; }
+    ctx.shadowColor = "rgba(0,0,0,.35)"; ctx.shadowBlur = 4;
+    ctx.fillText(t.w, R - 22, 0);
+    ctx.restore();
+  });
+  /* pegs */
+  for (let i = 0; i < n; i++) {
+    const a = -Math.PI / 2 + i * s;
+    ctx.beginPath(); ctx.arc(c + Math.cos(a) * (R - 6), c + Math.sin(a) * (R - 6), 7, 0, Math.PI * 2);
+    ctx.fillStyle = "#ffd166"; ctx.fill();
+  }
+}
+function setRot() { cv.style.transform = `rotate(${angle}rad)`; }
+
+/* ---------- sound ---------- */
+let ac;
+function tick(freq = 1400, dur = .03, vol = .15) {
+  if (!sound) return;
+  try {
+    ac = ac || new (window.AudioContext || window.webkitAudioContext)();
+    const o = ac.createOscillator(), g = ac.createGain();
+    o.type = "square"; o.frequency.value = freq; g.gain.value = vol;
+    g.gain.exponentialRampToValueAtTime(.0001, ac.currentTime + dur);
+    o.connect(g).connect(ac.destination); o.start(); o.stop(ac.currentTime + dur);
+  } catch (e) {}
+}
+function fanfare() { [523, 659, 784, 1046].forEach((f, i) => setTimeout(() => tick(f, .18, .12), i * 110)); }
+
+/* ---------- spin ---------- */
+function spin() {
+  if (spinning || !ITEMS.length) return;
+  if (st.left <= 0) { flashSpins(); return; }
+  spinning = true; st.left--; save(); renderSide();
+  const n = ITEMS.length, s = Math.PI * 2 / n;
+  const pick = Math.floor(Math.random() * n);
+  /* final angle so slice `pick` sits under the pointer, a little off-centre for realism */
+  const within = (.15 + Math.random() * .7) * s;
+  const base = -(pick * s + within);
+  const turns = 6 + Math.floor(Math.random() * 3);
+  const TAU = Math.PI * 2;
+  const target = angle + (((base - angle) % TAU) + TAU) % TAU + turns * TAU;
+  const start = angle, dist = target - start, dur = 5200 + Math.random() * 1200, t0 = performance.now();
+  let lastSlice = Math.floor(-start / s);
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  function frame(now) {
+    const p = reduce ? 1 : Math.min(1, (now - t0) / dur);
+    const e = 1 - Math.pow(1 - p, 4);
+    angle = start + dist * e; setRot();
+    const sl = Math.floor(-angle / s);
+    if (sl !== lastSlice) { lastSlice = sl; tick(); }
+    if (p < 1) requestAnimationFrame(frame);
+    else { angle = target % (Math.PI * 2); setRot(); spinning = false; land(ITEMS[pick]); }
+  }
+  requestAnimationFrame(frame);
+}
+function land(t) {
+  current = t; fanfare(); confetti();
+  const name = $("nm").value.trim();
+  st.hist.unshift({ n: name || "Student", w: t.w, ok: false, at: Date.now() }); st.hist = st.hist.slice(0, 60); save();
+  showCard();
+  renderSide();
+}
+function showCard() {
+  const t = current, name = $("nm").value.trim();
+  $("card").style.setProperty("--c", t.g.color);
+  $("card").innerHTML = `
+    ${name ? `<div class="who">🎤 ${esc(name)}, it's your word!</div>` : ""}
+    <div class="grp">${t.g.name}</div>
+    <div class="ic">${t.ic}</div>
+    <div class="w" id="rw">${t.w}</div>
+    <p class="task">Explain it to the class in your own words. Give an example if you can!</p>
+    <div class="mean" id="mean"><p><strong>Meaning:</strong> ${t.mean}</p><p><strong>Think of it like:</strong> ${t.like}</p><p><strong>Example:</strong> ${t.ex}</p></div>
+    <div class="acts">
+      <button class="btn ghost" onclick="$('mean').classList.toggle('show')">👀 Show meaning</button>
+      <button class="btn" onclick="explained(true)">✅ Explained it!</button>
+      <button class="btn ghost" onclick="explained(false)">↩ Not this time</button>
+    </div>
+    <div class="left">${st.left > 0 ? `${esc(name || "This student")} has <b>${st.left}</b> spin${st.left === 1 ? "" : "s"} left.` : `That was ${esc(name || "this student")}'s last spin. 👏`}</div>`;
+  $("modal").classList.add("show");
+  setTimeout(() => $("card").querySelector(".btn").focus(), 50);
+}
+function explained(ok) {
+  if (st.hist[0] && st.hist[0].w === current.w) st.hist[0].ok = ok;
+  if (ok && $("remove").checked && !st.done.includes(current.w)) st.done.push(current.w);
+  save();
+  $("modal").classList.remove("show");
+  const before = ITEMS.length;
+  ITEMS = items();
+  if (ITEMS.length !== before) { angle = 0; setRot(); draw(); }
+  renderSide();
+  if (st.left <= 0) setTimeout(() => $("nm").focus(), 100);
+}
+function nextStudent() { st.left = SPINS; st.name = ""; $("nm").value = ""; save(); renderSide(); $("nm").focus(); }
+function flashSpins() { const el = $("spins"); el.animate([{ transform: "translateX(-6px)" }, { transform: "translateX(6px)" }, { transform: "none" }], { duration: 300 }); }
+function refill() { st.done = []; save(); ITEMS = items(); draw(); renderSide(); }
+let clearArmed = false;
+function clearHistory(b) {
+  if (!clearArmed) { clearArmed = true; b.textContent = "Click again to clear"; setTimeout(() => { clearArmed = false; b.textContent = "Clear history"; }, 3000); return; }
+  st.hist = []; save(); renderSide(); b.textContent = "Clear history"; clearArmed = false;
+}
+function toggleGroup(id) {
+  const on = st.groups.includes(id);
+  if (on && st.groups.length === 1) return;
+  st.groups = on ? st.groups.filter(g => g !== id) : [...st.groups, id];
+  save(); ITEMS = items(); angle = 0; setRot(); draw(); renderSide();
+}
+function fullscreen() { if (!document.fullscreenElement) document.documentElement.requestFullscreen?.(); else document.exitFullscreen?.(); }
+
+/* ---------- side panel ---------- */
+function renderSide() {
+  $("spins").innerHTML = `Spins left: ${Array.from({ length: SPINS }, (_, i) => `<span class="dot${i < SPINS - st.left ? " used" : ""}"></span>`).join("")}`;
+  const out = st.left <= 0 || !ITEMS.length;
+  $("spinbtn").disabled = out; $("hub").disabled = out;
+  $("spinbtn").textContent = !ITEMS.length ? "No words left" : st.left <= 0 ? "No spins left: next student" : "🎡 SPIN";
+  $("chips").innerHTML = GROUPS.map(g => `<button class="chip" style="--c:${g.color}" aria-pressed="${st.groups.includes(g.id)}" onclick="toggleGroup('${g.id}')">${g.name}</button>`).join("");
+  $("count").textContent = `${ITEMS.length} words on the wheel · ${st.done.length} explained and removed`;
+  $("hist").innerHTML = st.hist.length ? st.hist.map(h => `<li><span>${esc(h.n)}</span><b>${esc(h.w)}</b><span class="${h.ok ? "ok" : ""}">${h.ok ? "✅" : "·"}</span></li>`).join("") : `<li style="color:#6f8794">No spins yet.</li>`;
+  $("snd").textContent = sound ? "🔊 Sound on" : "🔇 Sound off";
+  $("remove").checked = st.remove !== false;
+}
+
+/* ---------- confetti ---------- */
+function confetti() {
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const c = document.createElement("canvas"); c.className = "confetti"; c.width = innerWidth; c.height = innerHeight; document.body.appendChild(c);
+  const x = c.getContext("2d"), cols = ["#ffd166", "#2f8f7f", "#e07a5f", "#3d7fc4", "#8a5bb8", "#7ee0a8"];
+  const ps = Array.from({ length: 160 }, () => ({ x: innerWidth / 2, y: innerHeight / 3, vx: (Math.random() - .5) * 18, vy: Math.random() * -16 - 4, r: Math.random() * 6 + 4, c: cols[Math.floor(Math.random() * cols.length)], a: Math.random() * 6 }));
+  let f = 0;
+  (function step() {
+    x.clearRect(0, 0, c.width, c.height);
+    ps.forEach(p => { p.vy += .45; p.x += p.vx; p.y += p.vy; p.a += .2; x.save(); x.translate(p.x, p.y); x.rotate(p.a); x.fillStyle = p.c; x.fillRect(-p.r / 2, -p.r / 4, p.r, p.r / 2); x.restore(); });
+    if (++f < 110) requestAnimationFrame(step); else c.remove();
+  })();
+}
+
+/* ---------- events ---------- */
+cv.onclick = spin;
+$("nm").value = st.name || "";
+$("nm").oninput = e => { st.name = e.target.value; save(); };
+$("remove").onchange = e => { st.remove = e.target.checked; save(); };
+document.addEventListener("keydown", e => {
+  if ($("modal").classList.contains("show")) { if (e.key === "Escape") explained(false); return; }
+  if (e.code === "Space" && document.activeElement !== $("nm")) { e.preventDefault(); spin(); }
+});
+draw(); setRot(); renderSide();
+</script>
+</body>
+</html>
