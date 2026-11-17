@@ -92,6 +92,21 @@ function update() {
 nm.value = get();
 nm.oninput = () => { set(nm.value.trim().slice(0, 24)); update(); };
 update();
+
+/* check-in: the first time a student starts a game today, their name joins the Spin the Wheel line-up */
+cards.addEventListener("click", async e => {
+  const a = e.target.closest("a.card");
+  const name = nm.value.trim();
+  if (!a || !name || !window.Scores || !Scores.enabled) return;
+  const today = new Date().toDateString(), key = "ds-checkin";
+  let done = ""; try { done = localStorage.getItem(key) || ""; } catch (x) {}
+  if (done === today + "|" + name.toLowerCase()) return;
+  e.preventDefault();
+  try { localStorage.setItem(key, today + "|" + name.toLowerCase()); } catch (x) {}
+  await Promise.race([Scores.submit("ds-join", 0, "started " + a.querySelector("h2").textContent, name), new Promise(r => setTimeout(r, 1500))]);
+  location.href = a.href;
+});
 </script>
+<script src="../scores.js"></script>
 </body>
 </html>

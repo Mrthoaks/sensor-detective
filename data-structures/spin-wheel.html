@@ -1,6 +1,7 @@
 <!doctype html>
-<!-- SPIN THE WHEEL (teacher screen): a student spins, the wheel lands on a Data Structures term,
-     and the student explains it to the class. Two spins per student. Not linked from the student menus. -->
+<!-- SPIN THE WHEEL (teacher screen): students come up in the order they started the games.
+     Each student gets 3 spins; the wheel lands on a Data Structures term and they explain it to the class.
+     Then the next name pops up automatically. Not linked from the student game cards. -->
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -9,131 +10,209 @@
 <title>Spin the Wheel</title>
 <style>
 * { box-sizing: border-box; }
-body { margin: 0; font-family: Arial, Helvetica, sans-serif; background: #0f1c26; color: #eef4f3; min-height: 100vh; }
-.app { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 24px; max-width: 1400px; margin: auto; padding: 20px 24px; min-height: 100vh; }
+body { margin: 0; font-family: Arial, Helvetica, sans-serif; background: #0f1c26; color: #eef4f3; min-height: 100vh; overflow-x: hidden; }
+.app { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 18px; padding: 12px 18px; min-height: 100vh; }
 .stagearea { display: flex; flex-direction: column; align-items: center; justify-content: center; }
-h1 { margin: 0 0 4px; font-size: 32px; text-align: center; }
-.tag { color: #8fd3c4; font-size: 13px; letter-spacing: 2px; font-weight: bold; text-align: center; margin-bottom: 6px; }
-.wrap { position: relative; width: min(72vh, 100%); aspect-ratio: 1; margin-top: 40px; }
-#wheel { width: 100%; height: 100%; display: block; border-radius: 50%; box-shadow: 0 0 0 10px #22384a, 0 0 0 16px #ffd166, 0 20px 60px rgba(0,0,0,.5); cursor: pointer; will-change: transform; }
-.pointer { position: absolute; top: -26px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 26px solid transparent; border-right: 26px solid transparent; border-top: 52px solid #ffd166; filter: drop-shadow(0 4px 4px rgba(0,0,0,.5)); z-index: 2; }
-.hub { position: absolute; inset: 50%; width: 22%; height: 22%; transform: translate(-50%, -50%); border-radius: 50%; background: radial-gradient(circle at 35% 30%, #ffe8a3, #ffd166 45%, #c99a2a); border: 6px solid #22384a; display: grid; place-items: center; font: bold clamp(16px, 3.2vh, 30px) Arial; color: #172033; cursor: pointer; z-index: 2; user-select: none; }
+.wrap { position: relative; width: min(calc(100vh - 110px), 100%); aspect-ratio: 1; margin-top: 34px; }
+#wheel { width: 100%; height: 100%; display: block; border-radius: 50%; box-shadow: 0 0 0 10px #22384a, 0 0 0 17px #ffd166, 0 20px 60px rgba(0,0,0,.5); cursor: pointer; will-change: transform; }
+.pointer { position: absolute; top: -32px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 30px solid transparent; border-right: 30px solid transparent; border-top: 60px solid #ffd166; filter: drop-shadow(0 4px 4px rgba(0,0,0,.5)); z-index: 2; }
+.hub { position: absolute; left: 50%; top: 50%; width: 20%; height: 20%; transform: translate(-50%, -50%); border-radius: 50%; background: radial-gradient(circle at 35% 30%, #ffe8a3, #ffd166 45%, #c99a2a); border: 6px solid #22384a; display: grid; place-items: center; font: bold clamp(18px, 3.4vh, 34px) Arial; color: #172033; cursor: pointer; z-index: 2; user-select: none; }
 .hub:disabled { cursor: not-allowed; filter: grayscale(.7); }
-.hint { margin-top: 18px; color: #9fb3bd; font-size: 15px; text-align: center; }
+.hint { margin: 16px 0 0; color: #9fb3bd; font-size: 15px; text-align: center; }
 
-aside { background: #172a38; border-radius: 20px; padding: 20px; align-self: start; position: sticky; top: 20px; }
-aside h2 { font-size: 16px; margin: 0 0 10px; color: #8fd3c4; letter-spacing: 1px; }
-.box { background: #0f1c26; border-radius: 14px; padding: 14px; margin-bottom: 16px; }
-label { display: block; font-size: 13px; color: #9fb3bd; margin-bottom: 6px; }
-input[type=text] { width: 100%; border: 2px solid #2c4658; background: #0b151d; color: white; border-radius: 10px; padding: 12px; font: bold 18px Arial; }
-.spins { display: flex; align-items: center; gap: 10px; margin-top: 12px; font-weight: bold; }
+aside { background: #172a38; border-radius: 20px; padding: 16px; align-self: start; position: sticky; top: 12px; max-height: calc(100vh - 24px); overflow: auto; }
+.title { text-align: center; margin-bottom: 12px; }
+.title .tag { color: #8fd3c4; font-size: 11px; letter-spacing: 2px; font-weight: bold; }
+.title h1 { margin: 2px 0 0; font-size: 24px; }
+aside h2 { font-size: 13px; margin: 0 0 8px; color: #8fd3c4; letter-spacing: 1.5px; }
+.box { background: #0f1c26; border-radius: 14px; padding: 13px; margin-bottom: 12px; }
+.now { border: 2px solid #ffd166; }
+label.sm { display: block; font-size: 12px; color: #9fb3bd; margin-bottom: 5px; }
+input[type=text] { width: 100%; border: 2px solid #2c4658; background: #0b151d; color: white; border-radius: 10px; padding: 11px; font: bold 22px Arial; }
+.spins { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-weight: bold; }
 .spins .dot { width: 22px; height: 22px; border-radius: 50%; background: #ffd166; box-shadow: 0 0 10px #ffd16688; }
 .spins .dot.used { background: #2c4658; box-shadow: none; }
-.btn { border: 0; border-radius: 12px; padding: 13px 18px; background: #2f8f7f; color: white; font: bold 15px Arial; cursor: pointer; width: 100%; margin-top: 12px; }
-.btn.gold { background: #ffd166; color: #172033; font-size: 20px; padding: 16px; }
+.btn { border: 0; border-radius: 12px; padding: 12px 14px; background: #2f8f7f; color: white; font: bold 14px Arial; cursor: pointer; width: 100%; margin-top: 10px; }
+.btn.gold { background: #ffd166; color: #172033; font-size: 20px; padding: 15px; }
 .btn.ghost { background: transparent; border: 2px solid #2c4658; color: #cfe0e5; }
 .btn:disabled { opacity: .45; cursor: not-allowed; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.two .btn { margin-top: 8px; }
 button:focus-visible, input:focus-visible, canvas:focus-visible { outline: 3px solid #ffd166; outline-offset: 3px; }
+.queue { list-style: none; margin: 0; padding: 0; font-size: 15px; max-height: 190px; overflow: auto; }
+.queue li { display: flex; align-items: center; gap: 8px; padding: 6px 4px; border-bottom: 1px solid #22384a; }
+.queue li .n { width: 22px; height: 22px; border-radius: 50%; background: #22384a; display: grid; place-items: center; font-size: 11px; font-weight: bold; flex: none; }
+.queue li.cur { color: #ffd166; font-weight: bold; }
+.queue li.cur .n { background: #ffd166; color: #172033; }
+.queue li.done { color: #6f8794; text-decoration: line-through; }
+.queue li button { margin-left: auto; background: none; border: 0; color: #6f8794; cursor: pointer; font-size: 14px; }
+.status { font-size: 12px; color: #9fb3bd; margin-top: 8px; line-height: 1.4; }
+.status.warn { color: #ffb38a; }
+.addrow { display: flex; gap: 6px; margin-top: 8px; }
+.addrow input { font-size: 14px; padding: 8px; }
+.addrow button { border: 0; border-radius: 10px; background: #2f8f7f; color: white; font: bold 14px Arial; padding: 0 12px; cursor: pointer; }
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
-.chip { border: 2px solid var(--c); background: transparent; color: #eef4f3; border-radius: 30px; padding: 6px 10px; font: bold 12px Arial; cursor: pointer; }
+.chip { border: 2px solid var(--c); background: transparent; color: #eef4f3; border-radius: 30px; padding: 5px 9px; font: bold 11px Arial; cursor: pointer; }
 .chip[aria-pressed="true"] { background: var(--c); }
-.row { display: flex; gap: 8px; align-items: center; font-size: 13px; color: #cfe0e5; margin-top: 10px; }
-.row input { width: 18px; height: 18px; accent-color: #2f8f7f; }
-.count { font-size: 13px; color: #9fb3bd; margin-top: 8px; }
-.hist { list-style: none; padding: 0; margin: 0; max-height: 220px; overflow: auto; font-size: 14px; }
-.hist li { padding: 7px 0; border-bottom: 1px solid #22384a; display: flex; justify-content: space-between; gap: 8px; }
+.row { display: flex; gap: 8px; align-items: center; font-size: 12px; color: #cfe0e5; margin-top: 8px; }
+.row input { width: 16px; height: 16px; accent-color: #2f8f7f; }
+.count { font-size: 12px; color: #9fb3bd; margin-top: 6px; }
+.hist { list-style: none; padding: 0; margin: 0; max-height: 160px; overflow: auto; font-size: 13px; }
+.hist li { padding: 6px 0; border-bottom: 1px solid #22384a; display: flex; justify-content: space-between; gap: 8px; }
 .hist li b { color: #ffd166; }
 .hist li span.ok { color: #7ee0a8; }
-.links { display: flex; flex-wrap: wrap; gap: 12px; font-size: 13px; }
-.links button, .links a { background: none; border: 0; color: #9fb3bd; text-decoration: underline; font: 13px Arial; cursor: pointer; padding: 0; }
+.links { display: flex; flex-wrap: wrap; gap: 10px; font-size: 12px; }
+.links button, .links a { background: none; border: 0; color: #9fb3bd; text-decoration: underline; font: 12px Arial; cursor: pointer; padding: 0; }
+details summary { cursor: pointer; color: #8fd3c4; font-size: 13px; font-weight: bold; letter-spacing: 1.5px; }
 
-/* result card */
-.modal { position: fixed; inset: 0; background: rgba(5,12,18,.78); display: none; place-items: center; z-index: 20; padding: 20px; }
+/* result card + next-up banner */
+.modal { position: fixed; inset: 0; background: rgba(5,12,18,.8); display: none; place-items: center; z-index: 20; padding: 20px; }
 .modal.show { display: grid; }
-.card { background: white; color: #172033; border-radius: 26px; padding: 34px 36px; width: min(760px, 100%); text-align: center; border-top: 14px solid var(--c, #2f8f7f); animation: pop .45s cubic-bezier(.2,1.6,.4,1); }
+.card { background: white; color: #172033; border-radius: 26px; padding: 34px 36px; width: min(820px, 100%); text-align: center; border-top: 14px solid var(--c, #2f8f7f); animation: pop .45s cubic-bezier(.2,1.6,.4,1); }
 @keyframes pop { from { transform: scale(.6); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-.card .who { font-size: 16px; color: #5d6678; font-weight: bold; }
-.card .grp { font-size: 14px; letter-spacing: 2px; font-weight: bold; color: var(--c); text-transform: uppercase; margin-top: 6px; }
-.card .ic { font-size: 80px; margin: 6px 0; }
-.card .w { font-size: clamp(36px, 7vw, 66px); font-weight: bold; letter-spacing: 1px; line-height: 1.1; }
-.card .task { font-size: 20px; margin: 14px 0 6px; color: #3f4a5c; }
-.card .mean { display: none; text-align: left; background: #f3f8f7; border-radius: 16px; padding: 16px 20px; margin-top: 16px; font-size: 18px; line-height: 1.55; }
+.card .who { font-size: 20px; color: #5d6678; font-weight: bold; }
+.card .grp { font-size: 15px; letter-spacing: 2px; font-weight: bold; color: var(--c); text-transform: uppercase; margin-top: 6px; }
+.card .ic { font-size: 86px; margin: 6px 0; }
+.card .w { font-size: clamp(38px, 7vw, 72px); font-weight: bold; letter-spacing: 1px; line-height: 1.1; }
+.card .task { font-size: 21px; margin: 14px 0 6px; color: #3f4a5c; }
+.card .mean { display: none; text-align: left; background: #f3f8f7; border-radius: 16px; padding: 16px 20px; margin-top: 16px; font-size: 19px; line-height: 1.55; }
 .card .mean.show { display: block; }
 .card .mean p { margin: 4px 0 8px; }
 .card .acts { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 20px; }
-.card .acts .btn { width: auto; margin: 0; }
+.card .acts .btn { width: auto; margin: 0; padding: 13px 20px; font-size: 16px; }
 .card .btn.ghost { color: #1f6f6a; border-color: #d6e2df; }
-.card .left { margin-top: 14px; font-size: 15px; color: #5d6678; }
+.card .left { margin-top: 14px; font-size: 16px; color: #5d6678; }
+.nextup { text-align: center; animation: pop .5s cubic-bezier(.2,1.6,.4,1); }
+.nextup .lbl { font-size: 22px; letter-spacing: 4px; color: #8fd3c4; font-weight: bold; }
+.nextup .big { font-size: clamp(54px, 11vw, 130px); font-weight: bold; color: #ffd166; line-height: 1.1; margin: 10px 0; text-shadow: 0 6px 30px rgba(255,209,102,.35); }
+.nextup p { font-size: 24px; color: #eef4f3; margin: 0 0 22px; }
+.nextup .btn { width: auto; padding: 16px 30px; font-size: 20px; }
 canvas.confetti { position: fixed; inset: 0; pointer-events: none; z-index: 30; }
 
-@media (max-width: 900px) { .app { grid-template-columns: 1fr; } aside { position: static; } .wrap { width: min(92vw, 70vh); } }
-@media (prefers-reduced-motion: reduce) { .card { animation: none; } }
+@media (max-width: 900px) { .app { grid-template-columns: 1fr; } aside { position: static; max-height: none; } .wrap { width: min(94vw, 80vh); } }
+@media (prefers-reduced-motion: reduce) { .card, .nextup { animation: none; } }
 </style>
 </head>
 <body>
 <div class="app">
   <div class="stagearea">
-    <div class="tag">GIS DATA STRUCTURES • CLASS GAME</div>
-    <h1>🎡 Spin the Wheel</h1>
     <div class="wrap">
       <div class="pointer" aria-hidden="true"></div>
-      <canvas id="wheel" width="1000" height="1000" tabindex="0" role="button" aria-label="Spin the wheel"></canvas>
+      <canvas id="wheel" width="1200" height="1200" tabindex="0" role="button" aria-label="Spin the wheel"></canvas>
       <button class="hub" id="hub" onclick="spin()">SPIN</button>
     </div>
     <p class="hint">Click the wheel, press <b>SPIN</b> or hit the <b>space bar</b>. Wherever it stops, explain that word to the class!</p>
   </div>
 
   <aside>
-    <div class="box">
-      <h2>🎤 PLAYER</h2>
-      <label for="nm">Student's name</label>
-      <input type="text" id="nm" maxlength="24" placeholder="Type a name" autocomplete="off">
+    <div class="title"><div class="tag">GIS DATA STRUCTURES</div><h1>🎡 Spin the Wheel</h1></div>
+    <div class="box now">
+      <h2>🎤 NOW SPINNING</h2>
+      <input type="text" id="nm" maxlength="24" placeholder="Student's name" autocomplete="off" aria-label="Student now spinning">
       <div class="spins" id="spins"></div>
       <button class="btn gold" id="spinbtn" onclick="spin()">🎡 SPIN</button>
-      <button class="btn ghost" onclick="nextStudent()">👋 Next student</button>
+      <div class="two"><button class="btn ghost" onclick="skip()" title="Absent or not ready: move to the end of the line">⏭ Skip</button><button class="btn ghost" onclick="advance(true)">👋 Next student</button></div>
     </div>
     <div class="box">
-      <h2>🎯 WORDS ON THE WHEEL</h2>
-      <div class="chips" id="chips"></div>
+      <h2>👥 LINE-UP (order they started)</h2>
+      <ol class="queue" id="queue"></ol>
+      <div class="status" id="status">Loading names…</div>
+      <div class="addrow"><input type="text" id="addnm" maxlength="24" placeholder="Add a name" aria-label="Add a name to the line-up"><button onclick="addName()">＋</button></div>
+    </div>
+    <details class="box">
+      <summary>🎯 WORDS ON THE WHEEL</summary>
+      <div class="chips" id="chips" style="margin-top:10px"></div>
       <label class="row"><input type="checkbox" id="remove" checked> Remove a word once it's been explained</label>
       <div class="count" id="count"></div>
       <button class="btn ghost" onclick="refill()">↺ Put all words back</button>
-    </div>
-    <div class="box">
-      <h2>📜 THIS CLASS</h2>
-      <ul class="hist" id="hist"></ul>
-    </div>
+    </details>
+    <details class="box">
+      <summary>📜 HISTORY</summary>
+      <ul class="hist" id="hist" style="margin-top:8px"></ul>
+    </details>
     <div class="links">
       <button onclick="fullscreen()">⛶ Full screen</button>
       <button onclick="sound=!sound;save();renderSide()" id="snd"></button>
-      <button onclick="clearHistory(this)">Clear history</button>
+      <button onclick="resetClass(this)">New class (clear line-up &amp; history)</button>
       <a href="index.html">← Games page</a>
     </div>
   </aside>
 </div>
 
-<div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="rw">
-  <div class="card" id="card"></div>
-</div>
+<div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="rw"><div class="card" id="card"></div></div>
+<div class="modal" id="nextmodal" style="background:rgba(5,12,18,.94)" role="dialog" aria-modal="true" aria-label="Next student"><div class="nextup" id="nextup"></div></div>
 
 <script src="terms.js"></script>
+<script src="../scores.js"></script>
 <script>
-const GROUPS = window.DS_GROUPS, KEY = "ds-spin-wheel-v1", SPINS = 2;
+const GROUPS = window.DS_GROUPS, KEY = "ds-spin-wheel-v2", SPINS = 3, REFRESH = 10000;
 const ALL = GROUPS.flatMap(g => g.terms.map(t => ({ w: t[0], ic: t[1], mean: t[2], like: t[3], ex: t[4], g })));
 const store = { get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} } };
-let st = { groups: GROUPS.map(g => g.id), done: [], hist: [], name: "", left: SPINS, remove: true, sound: true };
+let st = { groups: GROUPS.map(g => g.id), done: [], hist: [], queue: [], finished: [], cur: "", left: SPINS, remove: true, sound: true, since: 0 };
 try { const raw = store.get(KEY); if (raw) st = Object.assign(st, JSON.parse(raw)); } catch (e) {}
+if (!st.since) st.since = startOfToday();
 let sound = st.sound !== false;
 function save() { st.sound = sound; store.set(KEY, JSON.stringify(st)); }
+function startOfToday() { const d = new Date(); d.setHours(0, 0, 0, 0); return d.getTime(); }
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const low = s => String(s).trim().toLowerCase();
 
-/* the words currently on the wheel, in a fixed mixed order so groups are spread around */
+/* ---------- words on the wheel (fixed mixed order so groups are spread around) ---------- */
 function items() {
   const list = ALL.filter(t => st.groups.includes(t.g.id) && !st.done.includes(t.w));
   return list.map((t, i) => ({ t, k: (i * 7919) % 101 })).sort((a, b) => a.k - b.k || a.t.w.localeCompare(b.t.w)).map(x => x.t);
 }
 let ITEMS = items(), angle = 0, spinning = false, current = null;
+
+/* ---------- line-up: names in the order students started the games ---------- */
+function inQueue(n) { return st.queue.some(q => low(q) === low(n)); }
+function isFinished(n) { return st.finished.some(q => low(q) === low(n)); }
+function addToQueue(n) { n = String(n).trim().slice(0, 24); if (n && !inQueue(n)) st.queue.push(n); }
+function nextName() { return st.queue.find(n => !isFinished(n) && low(n) !== low(st.cur)) || ""; }
+async function loadRoster() {
+  if (!window.Scores || !Scores.enabled) { $("status").textContent = "Leaderboard not connected: add names by hand below."; $("status").className = "status warn"; return; }
+  try {
+    const rows = await Scores.list();
+    const ds = ["ds-join", "architect", "ds-wordsearch", "ds-unscramble", "ds-oddone"];
+    const first = {};
+    rows.filter(r => Number(r[0]) >= st.since && ds.includes(r[1]) && String(r[2] || "").trim())
+      .forEach(r => { const k = low(r[2]); if (!(k in first) || Number(r[0]) < first[k][0]) first[k] = [Number(r[0]), String(r[2]).trim()]; });
+    const before = st.queue.length;
+    Object.values(first).sort((a, b) => a[0] - b[0]).forEach(([, n]) => addToQueue(n));
+    if (!st.cur && st.queue.length) { st.cur = nextName(); st.left = SPINS; }
+    save(); renderSide();
+    $("status").className = "status";
+    $("status").textContent = `Live: ${st.queue.length} student${st.queue.length === 1 ? "" : "s"} · updated ${new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit", second: "2-digit" })}` + (st.queue.length > before && before ? ` · ${st.queue.length - before} new` : "");
+  } catch (e) {
+    $("status").className = "status warn";
+    $("status").textContent = "Couldn't reach the leaderboard. Retrying… (you can add names by hand)";
+  }
+}
+function addName() { const v = $("addnm").value; if (!v.trim()) return; addToQueue(v); $("addnm").value = ""; if (!st.cur) { st.cur = nextName(); st.left = SPINS; } save(); renderSide(); }
+function removeName(i) { const n = st.queue[i]; st.queue.splice(i, 1); if (low(n) === low(st.cur)) { st.cur = nextName(); st.left = SPINS; } save(); renderSide(); }
+function skip() {
+  if (!st.cur) return;
+  const i = st.queue.findIndex(n => low(n) === low(st.cur));
+  if (i >= 0) st.queue.push(st.queue.splice(i, 1)[0]);
+  st.cur = nextName() || st.cur; st.left = SPINS; save(); renderSide();
+}
+function advance(manual) {
+  if (st.cur) { if (!inQueue(st.cur)) addToQueue(st.cur); if (!isFinished(st.cur)) st.finished.push(st.cur); }
+  const n = nextName();
+  st.cur = n; st.left = SPINS; save(); renderSide();
+  if (n) showNextUp(n); else if (!manual) toastNoMore();
+}
+function showNextUp(n) {
+  $("nextup").innerHTML = `<div class="lbl">NEXT UP</div><div class="big">${esc(n)}</div><p>Come up to the screen: you get ${SPINS} spins! 🎡</p><button class="btn gold" onclick="closeNextUp()">I'm ready! ✔</button>`;
+  $("nextmodal").classList.add("show"); fanfare();
+  setTimeout(() => $("nextup").querySelector("button").focus(), 50);
+}
+function closeNextUp() { $("nextmodal").classList.remove("show"); }
+function toastNoMore() {
+  $("nextup").innerHTML = `<div class="lbl">THAT'S EVERYONE</div><div class="big">🎉</div><p>Everyone in the line-up has had their turn. Add more names or start a new class.</p><button class="btn gold" onclick="closeNextUp()">OK</button>`;
+  $("nextmodal").classList.add("show");
+}
 
 /* ---------- draw ---------- */
 const cv = $("wheel"), ctx = cv.getContext("2d");
@@ -143,34 +222,33 @@ function shade(hex, f) {
   return `rgb(${m(r)},${m(g)},${m(b)})`;
 }
 function draw() {
-  const W = 1000, R = 490, c = W / 2;
+  const W = 1200, R = 590, c = W / 2;
   ctx.clearRect(0, 0, W, W);
   const n = ITEMS.length;
   if (!n) {
     ctx.fillStyle = "#22384a"; ctx.beginPath(); ctx.arc(c, c, R, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = "#cfe0e5"; ctx.font = "bold 40px Arial"; ctx.textAlign = "center";
-    ctx.fillText("All words explained! 🎉", c, c - 160); ctx.font = "28px Arial"; ctx.fillText("Press “Put all words back”", c, c + 180);
+    ctx.fillStyle = "#cfe0e5"; ctx.font = "bold 48px Arial"; ctx.textAlign = "center";
+    ctx.fillText("All words explained! 🎉", c, c - 190); ctx.font = "32px Arial"; ctx.fillText("Open “Words on the wheel” → Put all words back", c, c + 210);
     return;
   }
-  const s = Math.PI * 2 / n, fs = Math.max(13, Math.min(34, 560 / n + 8));
+  const s = Math.PI * 2 / n, fs = Math.max(16, Math.min(42, 700 / n + 10));
   ITEMS.forEach((t, i) => {
     const a0 = -Math.PI / 2 + i * s;
     ctx.beginPath(); ctx.moveTo(c, c); ctx.arc(c, c, R, a0, a0 + s); ctx.closePath();
     ctx.fillStyle = shade(t.g.color, i % 2 ? -.18 : .08); ctx.fill();
-    ctx.strokeStyle = "rgba(255,255,255,.85)"; ctx.lineWidth = n > 30 ? 2 : 3; ctx.stroke();
+    ctx.strokeStyle = "rgba(255,255,255,.85)"; ctx.lineWidth = n > 30 ? 2.5 : 3.5; ctx.stroke();
     ctx.save(); ctx.translate(c, c); ctx.rotate(a0 + s / 2);
     ctx.fillStyle = "white"; ctx.textAlign = "right"; ctx.textBaseline = "middle";
     let size = fs; ctx.font = `bold ${size}px Arial`;
-    const maxW = R - 140;
-    while (ctx.measureText(t.w).width > maxW && size > 10) { size--; ctx.font = `bold ${size}px Arial`; }
+    const maxW = R - 160;
+    while (ctx.measureText(t.w).width > maxW && size > 12) { size--; ctx.font = `bold ${size}px Arial`; }
     ctx.shadowColor = "rgba(0,0,0,.35)"; ctx.shadowBlur = 4;
-    ctx.fillText(t.w, R - 22, 0);
+    ctx.fillText(t.w, R - 26, 0);
     ctx.restore();
   });
-  /* pegs */
   for (let i = 0; i < n; i++) {
     const a = -Math.PI / 2 + i * s;
-    ctx.beginPath(); ctx.arc(c + Math.cos(a) * (R - 6), c + Math.sin(a) * (R - 6), 7, 0, Math.PI * 2);
+    ctx.beginPath(); ctx.arc(c + Math.cos(a) * (R - 7), c + Math.sin(a) * (R - 7), 8, 0, Math.PI * 2);
     ctx.fillStyle = "#ffd166"; ctx.fill();
   }
 }
@@ -193,39 +271,37 @@ function fanfare() { [523, 659, 784, 1046].forEach((f, i) => setTimeout(() => ti
 /* ---------- spin ---------- */
 function spin() {
   if (spinning || !ITEMS.length) return;
+  if ($("modal").classList.contains("show") || $("nextmodal").classList.contains("show")) return;
   if (st.left <= 0) { flashSpins(); return; }
   spinning = true; st.left--; save(); renderSide();
-  const n = ITEMS.length, s = Math.PI * 2 / n;
+  const n = ITEMS.length, s = Math.PI * 2 / n, TAU = Math.PI * 2;
   const pick = Math.floor(Math.random() * n);
-  /* final angle so slice `pick` sits under the pointer, a little off-centre for realism */
   const within = (.15 + Math.random() * .7) * s;
   const base = -(pick * s + within);
   const turns = 6 + Math.floor(Math.random() * 3);
-  const TAU = Math.PI * 2;
   const target = angle + (((base - angle) % TAU) + TAU) % TAU + turns * TAU;
   const start = angle, dist = target - start, dur = 5200 + Math.random() * 1200, t0 = performance.now();
   let lastSlice = Math.floor(-start / s);
   const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
   function frame(now) {
     const p = reduce ? 1 : Math.min(1, (now - t0) / dur);
-    const e = 1 - Math.pow(1 - p, 4);
-    angle = start + dist * e; setRot();
+    angle = start + dist * (1 - Math.pow(1 - p, 4)); setRot();
     const sl = Math.floor(-angle / s);
     if (sl !== lastSlice) { lastSlice = sl; tick(); }
     if (p < 1) requestAnimationFrame(frame);
-    else { angle = target % (Math.PI * 2); setRot(); spinning = false; land(ITEMS[pick]); }
+    else { angle = target % TAU; setRot(); spinning = false; land(ITEMS[pick]); }
   }
   requestAnimationFrame(frame);
 }
 function land(t) {
   current = t; fanfare(); confetti();
-  const name = $("nm").value.trim();
-  st.hist.unshift({ n: name || "Student", w: t.w, ok: false, at: Date.now() }); st.hist = st.hist.slice(0, 60); save();
-  showCard();
-  renderSide();
+  const name = st.cur.trim();
+  if (name) addToQueue(name);
+  st.hist.unshift({ n: name || "Student", w: t.w, ok: false, at: Date.now() }); st.hist = st.hist.slice(0, 80); save();
+  showCard(); renderSide();
 }
 function showCard() {
-  const t = current, name = $("nm").value.trim();
+  const t = current, name = st.cur.trim();
   $("card").style.setProperty("--c", t.g.color);
   $("card").innerHTML = `
     ${name ? `<div class="who">🎤 ${esc(name)}, it's your word!</div>` : ""}
@@ -239,9 +315,9 @@ function showCard() {
       <button class="btn" onclick="explained(true)">✅ Explained it!</button>
       <button class="btn ghost" onclick="explained(false)">↩ Not this time</button>
     </div>
-    <div class="left">${st.left > 0 ? `${esc(name || "This student")} has <b>${st.left}</b> spin${st.left === 1 ? "" : "s"} left.` : `That was ${esc(name || "this student")}'s last spin. 👏`}</div>`;
+    <div class="left">${st.left > 0 ? `Spin ${SPINS - st.left} of ${SPINS}. ${esc(name || "This student")} has <b>${st.left}</b> more spin${st.left === 1 ? "" : "s"}.` : `That was ${esc(name || "this student")}'s last spin. 👏 Next student comes up after this.`}</div>`;
   $("modal").classList.add("show");
-  setTimeout(() => $("card").querySelector(".btn").focus(), 50);
+  setTimeout(() => $("card").querySelector(".btn:not(.ghost)").focus(), 50);
 }
 function explained(ok) {
   if (st.hist[0] && st.hist[0].w === current.w) st.hist[0].ok = ok;
@@ -252,15 +328,17 @@ function explained(ok) {
   ITEMS = items();
   if (ITEMS.length !== before) { angle = 0; setRot(); draw(); }
   renderSide();
-  if (st.left <= 0) setTimeout(() => $("nm").focus(), 100);
+  if (st.left <= 0) setTimeout(() => advance(false), 250);
 }
-function nextStudent() { st.left = SPINS; st.name = ""; $("nm").value = ""; save(); renderSide(); $("nm").focus(); }
-function flashSpins() { const el = $("spins"); el.animate([{ transform: "translateX(-6px)" }, { transform: "translateX(6px)" }, { transform: "none" }], { duration: 300 }); }
+function flashSpins() { $("spins").animate([{ transform: "translateX(-6px)" }, { transform: "translateX(6px)" }, { transform: "none" }], { duration: 300 }); }
 function refill() { st.done = []; save(); ITEMS = items(); draw(); renderSide(); }
-let clearArmed = false;
-function clearHistory(b) {
-  if (!clearArmed) { clearArmed = true; b.textContent = "Click again to clear"; setTimeout(() => { clearArmed = false; b.textContent = "Clear history"; }, 3000); return; }
-  st.hist = []; save(); renderSide(); b.textContent = "Clear history"; clearArmed = false;
+let resetArmed = false;
+function resetClass(b) {
+  if (!resetArmed) { resetArmed = true; b.textContent = "Click again to clear"; setTimeout(() => { resetArmed = false; b.textContent = "New class (clear line-up & history)"; }, 3000); return; }
+  resetArmed = false;
+  Object.assign(st, { hist: [], queue: [], finished: [], cur: "", left: SPINS, done: [], since: Date.now() });
+  save(); ITEMS = items(); angle = 0; setRot(); draw(); renderSide(); loadRoster();
+  b.textContent = "New class (clear line-up & history)";
 }
 function toggleGroup(id) {
   const on = st.groups.includes(id);
@@ -272,10 +350,14 @@ function fullscreen() { if (!document.fullscreenElement) document.documentElemen
 
 /* ---------- side panel ---------- */
 function renderSide() {
-  $("spins").innerHTML = `Spins left: ${Array.from({ length: SPINS }, (_, i) => `<span class="dot${i < SPINS - st.left ? " used" : ""}"></span>`).join("")}`;
+  if (document.activeElement !== $("nm")) $("nm").value = st.cur || "";
+  $("spins").innerHTML = `Spins: ${Array.from({ length: SPINS }, (_, i) => `<span class="dot${i < SPINS - st.left ? " used" : ""}"></span>`).join("")}`;
   const out = st.left <= 0 || !ITEMS.length;
   $("spinbtn").disabled = out; $("hub").disabled = out;
-  $("spinbtn").textContent = !ITEMS.length ? "No words left" : st.left <= 0 ? "No spins left: next student" : "🎡 SPIN";
+  $("spinbtn").textContent = !ITEMS.length ? "No words left" : st.left <= 0 ? "No spins left" : "🎡 SPIN";
+  const q = st.queue.map((n, i) => ({ n, i })), cur = low(st.cur);
+  $("queue").innerHTML = q.length ? q.map(({ n, i }) => `<li class="${low(n) === cur ? "cur" : isFinished(n) ? "done" : ""}"><span class="n">${i + 1}</span>${esc(n)}${low(n) === cur ? " 🎤" : ""}<button onclick="removeName(${i})" aria-label="Remove ${esc(n)}" title="Remove">✕</button></li>`).join("")
+    : `<li style="color:#6f8794">No names yet. Names appear here as students start the games.</li>`;
   $("chips").innerHTML = GROUPS.map(g => `<button class="chip" style="--c:${g.color}" aria-pressed="${st.groups.includes(g.id)}" onclick="toggleGroup('${g.id}')">${g.name}</button>`).join("");
   $("count").textContent = `${ITEMS.length} words on the wheel · ${st.done.length} explained and removed`;
   $("hist").innerHTML = st.hist.length ? st.hist.map(h => `<li><span>${esc(h.n)}</span><b>${esc(h.w)}</b><span class="${h.ok ? "ok" : ""}">${h.ok ? "✅" : "·"}</span></li>`).join("") : `<li style="color:#6f8794">No spins yet.</li>`;
@@ -299,14 +381,17 @@ function confetti() {
 
 /* ---------- events ---------- */
 cv.onclick = spin;
-$("nm").value = st.name || "";
-$("nm").oninput = e => { st.name = e.target.value; save(); };
+$("nm").oninput = e => { st.cur = e.target.value; save(); };
+$("nm").onchange = e => { if (st.cur.trim()) addToQueue(st.cur); save(); renderSide(); };
+$("addnm").onkeydown = e => { if (e.key === "Enter") addName(); };
 $("remove").onchange = e => { st.remove = e.target.checked; save(); };
 document.addEventListener("keydown", e => {
+  if ($("nextmodal").classList.contains("show")) { if (e.key === "Escape" || e.key === "Enter") { e.preventDefault(); closeNextUp(); } return; }
   if ($("modal").classList.contains("show")) { if (e.key === "Escape") explained(false); return; }
-  if (e.code === "Space" && document.activeElement !== $("nm")) { e.preventDefault(); spin(); }
+  if (e.code === "Space" && !["nm", "addnm"].includes(document.activeElement.id)) { e.preventDefault(); spin(); }
 });
 draw(); setRot(); renderSide();
+loadRoster(); setInterval(loadRoster, REFRESH);
 </script>
 </body>
 </html>
